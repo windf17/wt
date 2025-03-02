@@ -35,11 +35,7 @@ func main() {
 	}
 
 	// 3. 创建token管理器
-	tokenManager, err := wtoken.InitTM[any](&config, groups, nil)
-	if err != nil {
-		fmt.Printf("初始化token管理器失败：%v\n", err)
-		return
-	}
+	tokenManager := wtoken.InitTM[any](&config, groups, nil)
 
 	// 4. 生成用户token
 	// userData := map[string]interface{}{

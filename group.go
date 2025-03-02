@@ -30,16 +30,16 @@ func (tm *Manager[T]) DelGroup(groupID uint) ErrorData {
 		return tm.NewError(ErrCodeGroupNotFound)
 	}
 	tm.lock()
-	deleted := false
+	deleteCount := 0
 	for token, ut := range tm.tokens {
 		if ut.GroupID == groupID {
 			delete(tm.tokens, token)
-			deleted = true
+			deleteCount++
 		}
 	}
 	tm.unlock()
-	if deleted {
-		tm.UpdateStats()
+	if deleteCount > 0 {
+		tm.updateStatsCount(-deleteCount, true)
 		// 保存到缓存文件
 		go tm.saveToFile()
 	}

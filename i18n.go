@@ -21,6 +21,7 @@ var ErrorI18nMessages = map[Language]map[ErrorCode]string{
 		ErrCodeInternalError:        "内部错误",
 		ErrCodeTypeAssertionError:   "类型断言错误",
 		ErrCodeInvalidURL:           "无效的URL",
+		ErrCodeNoAPIPermission:      "该用户的用户组没有定制API访问权限",
 	},
 	LangEnglish: {
 		ErrCodeSuccess:              "Success",
@@ -41,5 +42,6 @@ var ErrorI18nMessages = map[Language]map[ErrorCode]string{
 		ErrCodeInternalError:        "Internal error",
 		ErrCodeTypeAssertionError:   "Type assertion error",
 		ErrCodeInvalidURL:           "Invalid URL",
+		ErrCodeNoAPIPermission:      "The user group does not have customized API access permissions",
 	},
 }

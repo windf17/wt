@@ -37,10 +37,7 @@ func TestUserDataOperations(t *testing.T) {
 	}
 
 	// 3. 创建指定UserInfo类型的token管理器
-	tokenManager, err := wtoken.InitTM[UserInfo](&config, groups, nil)
-	if err != nil {
-		t.Fatalf("初始化token管理器失败：%v", err)
-	}
+	tokenManager := wtoken.InitTM[UserInfo](&config, groups, nil)
 
 	// 4. 测试生成用户token
 	tokenKey, errData := tokenManager.AddToken(1001, 1, "192.168.1.100")
@@ -55,7 +52,8 @@ func TestUserDataOperations(t *testing.T) {
 		Role:     "user",
 		Age:      25,
 	}
-	if err = tokenManager.SaveData(tokenKey, userData); err != nil {
+	err := tokenManager.SaveData(tokenKey, userData)
+	if err != nil {
 		t.Fatalf("保存用户数据失败：%v", err)
 	}
 	t.Log("保存用户数据成功")
@@ -77,7 +75,8 @@ func TestUserDataOperations(t *testing.T) {
 	// 7. 测试更新用户数据
 	userData.Role = "admin"
 	userData.Age = 26
-	if err = tokenManager.SaveData(tokenKey, userData); err != nil {
+	err = tokenManager.SaveData(tokenKey, userData)
+	if err != nil {
 		t.Fatalf("更新用户数据失败：%v", err)
 	}
 	t.Log("更新用户数据成功")
@@ -133,13 +132,10 @@ func TestUserDataErrorCases(t *testing.T) {
 	}
 
 	// 3. 创建token管理器
-	tokenManager, err := wtoken.InitTM[UserInfo](&config, groups, nil)
-	if err != nil {
-		t.Fatalf("初始化token管理器失败：%v", err)
-	}
+	tokenManager := wtoken.InitTM[UserInfo](&config, groups, nil)
 
 	// 4. 测试无效的token
-	_, err = tokenManager.GetData("invalid_token")
+	_, err := tokenManager.GetData("invalid_token")
 	if err == nil {
 		t.Error("期望获取无效token数据失败，但成功了")
 	}

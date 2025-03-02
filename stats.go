@@ -17,22 +17,15 @@ func (tm *Manager[T]) GetStats() Stats {
 	return statsCopy
 }
 
-// UpdateStats 更新统计信息
-func (tm *Manager[T]) UpdateStats() {
-	activeTokens := 0
-	expiredTokens := 0
-
-	// 只统计token状态，不做清理
-	for _, ut := range tm.tokens {
-		if ut.IsExpired() {
-			expiredTokens++
-		} else {
-			activeTokens++
-		}
+// updateStatsCount 更新token统计数量
+// count为正数时增加统计数，为负数时减少统计数
+// isExpired参数用于指定是否为过期token的统计
+func (tm *Manager[T]) updateStatsCount(count int, isExpired bool) {
+	tm.stats.TotalTokens += count
+	if isExpired {
+		tm.stats.ExpiredTokens += count
+	} else {
+		tm.stats.ActiveTokens += count
 	}
-	// 更新统计信息
-	tm.stats.TotalTokens = len(tm.tokens)
-	tm.stats.ActiveTokens = activeTokens
-	tm.stats.ExpiredTokens = expiredTokens
 	tm.stats.LastUpdateTime = time.Now()
 }

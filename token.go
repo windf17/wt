@@ -99,7 +99,7 @@ func (tm *Manager[T]) AddToken(userID uint, groupID uint, ip string) (string, Er
 
 	// 存储token
 	tm.tokens[tokenKey] = &tokenData
-	tm.UpdateStats()
+	tm.updateStatsCount(1, true)
 	// 保存到缓存文件
 	go tm.saveToFile() // 异步保存到缓存文件
 	return tokenKey, tm.NewError(ErrCodeSuccess)
@@ -113,7 +113,7 @@ func (tm *Manager[T]) DelToken(key string) ErrorData {
 		return tm.NewError(ErrCodeTokenNotFound)
 	}
 	delete(tm.tokens, key)
-	tm.UpdateStats()
+	tm.updateStatsCount(-1, true)
 	// 保存到缓存文件
 	go tm.saveToFile()
 	return tm.NewError(ErrCodeSuccess)
@@ -126,15 +126,15 @@ func (tm *Manager[T]) DelTokensByUserID(userID uint) ErrorData {
 	}
 	tm.lock()
 	defer tm.unlock()
-	deleted := false
+	deleteCount := 0
 	for token, ut := range tm.tokens {
 		if ut.UserID == userID {
 			delete(tm.tokens, token)
-			deleted = true
+			deleteCount++
 		}
 	}
-	if deleted {
-		tm.UpdateStats()
+	if deleteCount > 0 {
+		tm.updateStatsCount(-deleteCount, true)
 		// 保存到缓存文件
 		go tm.saveToFile()
 	}
@@ -152,15 +152,15 @@ func (tm *Manager[T]) DelTokensByGroupID(groupID uint) ErrorData {
 	if _, exists := tm.groups[groupID]; !exists {
 		return tm.NewError(ErrCodeGroupNotFound)
 	}
-	deleted := false
+	deleteCount := 0
 	for token, ut := range tm.tokens {
 		if ut.GroupID == groupID {
 			delete(tm.tokens, token)
-			deleted = true
+			deleteCount++
 		}
 	}
-	if deleted {
-		tm.UpdateStats()
+	if deleteCount > 0 {
+		tm.updateStatsCount(-deleteCount, true)
 		// 保存到缓存文件
 		go tm.saveToFile()
 	}
@@ -179,7 +179,6 @@ func (tm *Manager[T]) UpdateToken(key string, token *Token[T]) ErrorData {
 	}
 	token.LastAccessTime = time.Now()
 	tm.tokens[key] = token
-	tm.UpdateStats()
 	// 保存到缓存文件
 	go tm.saveToFile()
 	return tm.NewError(ErrCodeSuccess)
@@ -216,19 +215,19 @@ func (tm *Manager[T]) CleanExpiredTokens() {
 	tm.lock()
 	defer tm.unlock()
 
-	deleted := false
+	count := 0
 	for key, token := range tm.tokens {
 		if token == nil {
 			delete(tm.tokens, key)
-			deleted = true
+			count++
 		} else if token.IsExpired() {
 			delete(tm.tokens, key)
-			deleted = true
+			count++
 		}
 	}
 
-	if deleted {
-		tm.UpdateStats()
+	if count > 0 {
+		tm.updateStatsCount(-count, true)
 		// 保存到缓存文件
 		go tm.saveToFile()
 	}

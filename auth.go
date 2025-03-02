@@ -49,7 +49,11 @@ func (tm *Manager[T]) Authenticate(key string, url string, ip string) ErrorData 
 
 	// 处理url，获取api路径
 	apiPath := utility.NormalizeAPIPath(url)
-
+	totalLen := len(g.AllowedAPIs) + len(g.DeniedAPIs)
+	// 如果用户组没有允许的API路径和拒绝的API路径，则拒绝访问
+	if totalLen == 0 {
+		return tm.NewError(ErrCodeNoAPIPermission)
+	}
 	// 检查API路径权限
 	if !utility.HasPermission(apiPath, g.AllowedAPIs, g.DeniedAPIs) {
 		return tm.NewError(ErrCodeAccessDenied)

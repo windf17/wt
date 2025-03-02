@@ -56,6 +56,8 @@ const (
 	ErrCodeAccessDenied ErrorCode = 1701
 	// ErrCodeInvalidURL 无效的URL
 	ErrCodeInvalidURL ErrorCode = 1702
+	// 该用户的用户组没有定制API访问权限
+	ErrCodeNoAPIPermission ErrorCode = 1703
 
 	// ErrCodeInternalError 内部错误，1901开头
 	ErrCodeInternalError ErrorCode = 1901

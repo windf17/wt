@@ -48,15 +48,8 @@ func TestFR() {
 			AllowMultipleLogin: 0,
 		},
 	}
-
 	// 5. 创建token管理器（使用自定义的法语错误信息）
-	tokenManager, err := wtoken.InitTM[any](&config, groups, frenchErrorMessages)
-	// 错误处理
-	if err != nil {
-		fmt.Printf("Échec de l'initialisation du gestionnaire de token: %v\n", err)
-		return
-	}
-
+	tokenManager := wtoken.InitTM[any](&config, groups, frenchErrorMessages)
 	// 6. 测试错误信息（使用无效的用户ID生成token）
 	_, errData := tokenManager.AddToken(0, 1, "192.168.1.100")
 	// 应该返回法语的错误信息

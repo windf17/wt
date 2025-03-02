@@ -35,8 +35,6 @@ type IManager[T any] interface {
 
 	// GetStats 获取统计信息
 	GetStats() Stats
-	// 更新统计信息
-	UpdateStats()
 
 	// 新增错误信息
 	NewError(code ErrorCode) ErrorData

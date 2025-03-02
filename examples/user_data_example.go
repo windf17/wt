@@ -35,11 +35,7 @@ func Test() {
 	}
 
 	// 3. 创建指定UserInfo类型的token管理器
-	tokenManager, err := wtoken.InitTM[UserInfo](&config, groups, nil)
-	if err != nil {
-		fmt.Printf("初始化token管理器失败：%v\n", err)
-		return
-	}
+	tokenManager:= wtoken.InitTM[UserInfo](&config, groups, nil)
 
 	// 4. 生成用户token
 	tokenKey, errData := tokenManager.AddToken(1001, 1, "192.168.1.100")
@@ -55,7 +51,7 @@ func Test() {
 		Role:     "user",
 		Age:      25,
 	}
-	if err = tokenManager.SaveData(tokenKey, userData); err == nil {
+	if err := tokenManager.SaveData(tokenKey, userData); err == nil {
 		fmt.Println("保存用户数据成功")
 	}
 
@@ -68,7 +64,7 @@ func Test() {
 	// 7. 更新用户数据
 	userData.Role = "admin"
 	userData.Age = 26
-	if err = tokenManager.SaveData(tokenKey, userData); err == nil {
+	if errSave := tokenManager.SaveData(tokenKey, userData); errSave == nil {
 		fmt.Println("更新用户数据成功")
 	}
 

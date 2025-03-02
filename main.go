@@ -4,7 +4,6 @@ package wtoken
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -62,17 +61,10 @@ var (
 //   - 首次调用时会初始化实例，后续调用返回相同实例
 //   - 会先注册默认错误信息，然后再注册用户自定义错误信息
 //   - 支持多语言错误信息配置，可以根据config中的Language设置来返回对应语言的错误信息
-func InitTM[T any](config *Config, groups []GroupRaw, errorMessages map[ILanguage]map[ErrorCode]string) (IManager[T], error) {
+func InitTM[T any](config *Config, groups []GroupRaw, errorMessages map[ILanguage]map[ErrorCode]string) (IManager[T]) {
 	var instance *Manager[T]
-	var err error // 将错误变量移入闭包内部
 
 	once.Do(func() {
-		// 参数校验前置（防御性编程）
-		if len(groups) == 0 {
-			err = errors.New("groups cannot be empty")
-			return
-		}
-
 		// 配置合并逻辑
 		mergedConfig := mergeDefaultConfig(config)
 
@@ -108,10 +100,7 @@ func InitTM[T any](config *Config, groups []GroupRaw, errorMessages map[ILanguag
 	})
 
 	// 统一错误处理
-	if err != nil {
-		return nil, fmt.Errorf("singleton initialization failed: %w", err)
-	}
-	return instance, nil
+	return instance
 }
 
 // mergeDefaultConfig 配置合并逻辑（独立函数便于测试）
@@ -206,6 +195,9 @@ func (tm *Manager[T]) loadFromFile() error {
 		if os.IsNotExist(err) {
 			return nil
 		}
+		if tm.config.Debug {
+			fmt.Printf("Failed to read cache file: %v\n", err)
+		}
 		return tm.NewError(ErrCodeCacheFileLoadFailed)
 	}
 
@@ -215,6 +207,9 @@ func (tm *Manager[T]) loadFromFile() error {
 	}
 
 	if err := json.Unmarshal(fileData, &data); err != nil {
+		if tm.config.Debug {
+			fmt.Printf("Failed to parse cache file: %v\n", err)
+		}
 		return tm.NewError(ErrCodeCacheFileParseFailed)
 	}
 

@@ -50,11 +50,7 @@ func TestFrenchErrorMessages(t *testing.T) {
 	}
 
 	// 5. 创建token管理器
-	tokenManager, err := wtoken.InitTM[any](&config, groups, frenchErrorMessages)
-	if err != nil {
-		t.Fatalf("初始化token管理器失败：%v", err)
-	}
-
+	tokenManager := wtoken.InitTM[any](&config, groups, frenchErrorMessages)
 	// 6. 测试无效用户ID场景
 	_, errData := tokenManager.AddToken(0, 1, "192.168.1.100")
 	if errData.Code != wtoken.ErrCodeInvalidUserID {
