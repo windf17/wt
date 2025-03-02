@@ -10,9 +10,12 @@ A lightweight and efficient token management system designed for API authenticat
 -   High-performance memory cache with persistence support
 -   Concurrent operation support
 -   Debug logging and monitoring
--   Bilingual error messages (English/Chinese)
+-   Multilingual error messages (English/Chinese/Custom)
 -   Token quantity limit control for resource management
 -   Generic support for custom user data
+-   Customizable error handling system
+-   Multiple device login control
+-   Real-time token statistics
 
 ## Installation
 
@@ -78,68 +81,95 @@ func main() {
 ```go
 type Config struct {
     CacheFilePath string    // Cache file path
-    Language    string      // "en" for English or "zh" for Chinese error messages
+    Language    string      // Language for error messages ("en", "zh", or custom)
     MaxTokens    int        // Maximum concurrent tokens, no limit if <= 0
     Debug       bool        // Enable debug mode
     Delimiter   string      // API path delimiter, default is space
 }
 ```
 
-## API Reference
+## Error Handling System
 
-### Token Structure
+### Built-in Error Codes
 
 ```go
-type Token[T any] struct {
-    UserID         uint        // User ID
-    GroupID        uint        // Group ID
-    LoginTime      time.Time   // Initial login time
-    ExpireTime     time.Time   // Expiration time (zero value means never expire)
-    LastAccessTime time.Time   // Last access time
-    UserData       T          // Custom user data with generic type support
-    IP             string      // Token user's IP address
+const (
+    ErrCodeSuccess              = 0    // Operation successful
+    ErrCodeInvalidToken         = 1001 // Invalid token
+    ErrCodeTokenNotFound        = 1002 // Token not found
+    ErrCodeTokenExpired         = 1003 // Token expired
+    ErrCodeInvalidUserID        = 1004 // Invalid user ID
+    ErrCodeInvalidGroupID       = 1005 // Invalid group ID
+    ErrCodeInvalidIP            = 1006 // Invalid IP address
+    ErrCodeInvalidURL           = 1007 // Invalid URL
+    ErrCodeAccessDenied         = 1008 // Access denied
+    ErrCodeGroupNotFound        = 1009 // Group not found
+    ErrCodeAddToken             = 1010 // Failed to add token
+    ErrCodeCacheFileLoadFailed  = 1011 // Failed to load cache file
+    ErrCodeCacheFileParseFailed = 1012 // Failed to parse cache file
+)
+```
+
+### Custom Language Support
+
+Example of adding French language support:
+
+```go
+// Register new language
+fr := wtoken.RegisterLanguage("fr")
+
+// Define custom error messages
+frenchErrorMessages := map[wtoken.ILanguage]map[wtoken.ErrorCode]string{
+    fr: {
+        wtoken.ErrCodeSuccess:              "Opération réussie",
+        wtoken.ErrCodeInvalidToken:         "Token invalide",
+        wtoken.ErrCodeTokenNotFound:        "Token introuvable",
+        // ... more error messages
+    },
+}
+
+// Initialize with custom error messages
+manager, err := wtoken.InitTM[any](&config, groups, frenchErrorMessages)
+```
+
+## Advanced Features
+
+### Token Statistics
+
+```go
+// Get token statistics
+stats := manager.GetStats()
+fmt.Printf("Total tokens: %d\nActive tokens: %d\n", stats.TotalTokens, stats.ActiveTokens)
+```
+
+### Custom User Data
+
+```go
+// Save custom data
+userInfo := "custom data"
+if err = manager.SaveData(tokenKey, userInfo); err == nil {
+    fmt.Println("Data saved successfully")
+}
+
+// Retrieve custom data
+if data, err := manager.GetData(tokenKey); err == nil {
+    fmt.Printf("User data: %v\n", data)
 }
 ```
 
-### Group Configuration
+### Multiple Device Login Control
 
 ```go
-type GroupRaw struct {
-    ID                 uint   `json:"id"`              // Group ID
-    AllowedAPIs        string `json:"allowedApis"`     // Space-separated list of allowed APIs
-    DeniedAPIs         string `json:"deniedApis"`      // Space-separated list of denied APIs
-    TokenExpire        string `json:"tokenExpire"`     // Token expiration time in seconds, 0 means never expire
-    AllowMultipleLogin int    `json:"allowMultipleLogin"` // 1: allow multiple device login, others: single device only
+groups := []wtoken.GroupRaw{
+    {
+        ID:                 1,
+        AllowMultipleLogin: 0, // 0: single device only
+    },
+    {
+        ID:                 2,
+        AllowMultipleLogin: 1, // 1: allow multiple devices
+    },
 }
-```
-
-### Permission System
-
-1. **Priority Order**
-
-    - Whitelist check takes precedence over blacklist
-    - When present in both lists, blacklist takes precedence
-
-2. **Path Matching Rules**
-
-    - Uses standardized URL paths
-    - Follows longest prefix matching principle
-
-3. **IP Check Policy**
-    - AllowMultipleLogin=false: requires consistent login IP
-    - AllowMultipleLogin=true: allows different IP logins
-
-### Debug Mode Output
-
-When debug mode is enabled, the system logs detailed permission check process:
-
-```
-Verifying /api/product:
-  Checking AllowedAPIs:
-    - Match found: /api/product (length: 13)
-  Checking DeniedAPIs:
-    - No match found
-Result: Access allowed (matching allow rule: /api/product)
 ```
 
 ---
@@ -156,9 +186,12 @@ Result: Access allowed (matching allow rule: /api/product)
 -   高性能内存缓存，支持持久化
 -   并发操作支持
 -   调试日志和监控
--   双语错误信息（中文/英文）
+-   多语言错误信息（中文/英文/自定义）
 -   Token 数量限制控制
 -   泛型支持的自定义用户数据
+-   可自定义的错误处理系统
+-   多设备登录控制
+-   实时 Token 统计
 
 ## 安装
 
@@ -216,5 +249,89 @@ func main() {
     if errData.Code == wtoken.ErrCodeSuccess {
         fmt.Println("鉴权成功")
     }
+}
+```
+
+## 错误处理系统
+
+### 内置错误码
+
+```go
+const (
+    ErrCodeSuccess              = 0    // 操作成功
+    ErrCodeInvalidToken         = 1001 // 无效的token
+    ErrCodeTokenNotFound        = 1002 // token不存在
+    ErrCodeTokenExpired         = 1003 // token已过期
+    ErrCodeInvalidUserID        = 1004 // 无效的用户ID
+    ErrCodeInvalidGroupID       = 1005 // 无效的用户组ID
+    ErrCodeInvalidIP            = 1006 // 无效的IP地址
+    ErrCodeInvalidURL           = 1007 // 无效的URL
+    ErrCodeAccessDenied         = 1008 // 访问被拒绝
+    ErrCodeGroupNotFound        = 1009 // 用户组不存在
+    ErrCodeAddToken             = 1010 // 添加token失败
+    ErrCodeCacheFileLoadFailed  = 1011 // 加载缓存文件失败
+    ErrCodeCacheFileParseFailed = 1012 // 解析缓存文件失败
+)
+```
+
+### 自定义语言支持
+
+添加法语支持示例：
+
+```go
+// 注册新语言
+fr := wtoken.RegisterLanguage("fr")
+
+// 定义自定义错误信息
+frenchErrorMessages := map[wtoken.ILanguage]map[wtoken.ErrorCode]string{
+    fr: {
+        wtoken.ErrCodeSuccess:              "Opération réussie",
+        wtoken.ErrCodeInvalidToken:         "Token invalide",
+        wtoken.ErrCodeTokenNotFound:        "Token introuvable",
+        // ... 更多错误信息
+    },
+}
+
+// 使用自定义错误信息初始化
+manager, err := wtoken.InitTM[any](&config, groups, frenchErrorMessages)
+```
+
+## 高级功能
+
+### Token 统计
+
+```go
+// 获取token统计信息
+stats := manager.GetStats()
+fmt.Printf("总token数：%d\n活跃token数：%d\n", stats.TotalTokens, stats.ActiveTokens)
+```
+
+### 自定义用户数据
+
+```go
+// 保存自定义数据
+userInfo := "自定义数据"
+if err = manager.SaveData(tokenKey, userInfo); err == nil {
+    fmt.Println("数据保存成功")
+}
+
+// 获取自定义数据
+if data, err := manager.GetData(tokenKey); err == nil {
+    fmt.Printf("用户数据：%v\n", data)
+}
+```
+
+### 多设备登录控制
+
+```go
+groups := []wtoken.GroupRaw{
+    {
+        ID:                 1,
+        AllowMultipleLogin: 0, // 0: 仅允许单设备登录
+    },
+    {
+        ID:                 2,
+        AllowMultipleLogin: 1, // 1: 允许多设备登录
+    },
 }
 ```
