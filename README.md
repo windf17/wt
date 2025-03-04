@@ -63,14 +63,14 @@ func main() {
 
     // Generate token
     tokenKey, errData := manager.AddToken(1, 1, "127.0.0.1")
-    if errData.Code != wtoken.ErrCodeSuccess {
+    if errData != wtoken.ErrSuccess {
         fmt.Printf("Failed to generate token: %v\n", errData.Error())
         return
     }
 
     // Authenticate API access
     errData = manager.Authenticate(tokenKey, "/api/user", "127.0.0.1")
-    if errData.Code == wtoken.ErrCodeSuccess {
+    if errData == wtoken.ErrSuccess {
         fmt.Println("Authentication successful")
     }
 }
@@ -88,25 +88,39 @@ type Config struct {
 }
 ```
 
+## Token Structure
+
+```go
+type Token[T any] struct {
+    UserID         uint      // User ID
+    GroupID        uint      // Group ID
+    LoginTime      time.Time // Login time
+    ExpireSeconds  int64     // Token expiration seconds, 0 means never expire
+    LastAccessTime time.Time // Last access time
+    UserData       T        // Custom user data
+    IP             string   // User's IP address
+}
+```
+
 ## Error Handling System
 
 ### Built-in Error Codes
 
 ```go
 const (
-    ErrCodeSuccess              = 0    // Operation successful
-    ErrCodeInvalidToken         = 1001 // Invalid token
-    ErrCodeTokenNotFound        = 1002 // Token not found
-    ErrCodeTokenExpired         = 1003 // Token expired
-    ErrCodeInvalidUserID        = 1004 // Invalid user ID
-    ErrCodeInvalidGroupID       = 1005 // Invalid group ID
-    ErrCodeInvalidIP            = 1006 // Invalid IP address
-    ErrCodeInvalidURL           = 1007 // Invalid URL
-    ErrCodeAccessDenied         = 1008 // Access denied
-    ErrCodeGroupNotFound        = 1009 // Group not found
-    ErrCodeAddToken             = 1010 // Failed to add token
-    ErrCodeCacheFileLoadFailed  = 1011 // Failed to load cache file
-    ErrCodeCacheFileParseFailed = 1012 // Failed to parse cache file
+    ErrSuccess              = 0    // Operation successful
+    ErrInvalidToken         = 1001 // Invalid token
+    ErrTokenNotFound        = 1002 // Token not found
+    ErrTokenExpired         = 1003 // Token expired
+    ErrInvalidUserID        = 1004 // Invalid user ID
+    ErrInvalidGroupID       = 1005 // Invalid group ID
+    ErrInvalidIP            = 1006 // Invalid IP address
+    ErrInvalidURL           = 1007 // Invalid URL
+    ErrAccessDenied         = 1008 // Access denied
+    ErrGroupNotFound        = 1009 // Group not found
+    ErrAddToken             = 1010 // Failed to add token
+    ErrCacheFileLoadFailed  = 1011 // Failed to load cache file
+    ErrCacheFileParseFailed = 1012 // Failed to parse cache file
 )
 ```
 
@@ -116,14 +130,14 @@ Example of adding French language support:
 
 ```go
 // Register new language
-fr := wtoken.RegisterLanguage("fr")
+fr := wtoken.registerLanguage("fr")
 
 // Define custom error messages
 frenchErrorMessages := map[wtoken.ILanguage]map[wtoken.ErrorCode]string{
     fr: {
-        wtoken.ErrCodeSuccess:              "Opération réussie",
-        wtoken.ErrCodeInvalidToken:         "Token invalide",
-        wtoken.ErrCodeTokenNotFound:        "Token introuvable",
+        wtoken.ErrSuccess:              "Opération réussie",
+        wtoken.ErrInvalidToken:         "Token invalide",
+        wtoken.ErrTokenNotFound:        "Token introuvable",
         // ... more error messages
     },
 }
@@ -239,16 +253,30 @@ func main() {
 
     // 生成用户token
     tokenKey, errData := manager.AddToken(1, 1, "127.0.0.1")
-    if errData.Code != wtoken.ErrCodeSuccess {
+    if errData != wtoken.ErrSuccess {
         fmt.Printf("生成token失败：%v\n", errData.Error())
         return
     }
 
     // API鉴权测试
     errData = manager.Authenticate(tokenKey, "/api/user", "127.0.0.1")
-    if errData.Code == wtoken.ErrCodeSuccess {
+    if errData == wtoken.ErrSuccess {
         fmt.Println("鉴权成功")
     }
+}
+```
+
+## Token结构
+
+```go
+type Token[T any] struct {
+    UserID         uint      // 用户ID
+    GroupID        uint      // 用户组ID
+    LoginTime      time.Time // 登录时间
+    ExpireSeconds  int64     // token过期秒数，0表示永不过期
+    LastAccessTime time.Time // 最后访问时间
+    UserData       T        // 用户自定义数据
+    IP             string   // 用户IP地址
 }
 ```
 
@@ -258,19 +286,43 @@ func main() {
 
 ```go
 const (
-    ErrCodeSuccess              = 0    // 操作成功
-    ErrCodeInvalidToken         = 1001 // 无效的token
-    ErrCodeTokenNotFound        = 1002 // token不存在
-    ErrCodeTokenExpired         = 1003 // token已过期
-    ErrCodeInvalidUserID        = 1004 // 无效的用户ID
-    ErrCodeInvalidGroupID       = 1005 // 无效的用户组ID
-    ErrCodeInvalidIP            = 1006 // 无效的IP地址
-    ErrCodeInvalidURL           = 1007 // 无效的URL
-    ErrCodeAccessDenied         = 1008 // 访问被拒绝
-    ErrCodeGroupNotFound        = 1009 // 用户组不存在
-    ErrCodeAddToken             = 1010 // 添加token失败
-    ErrCodeCacheFileLoadFailed  = 1011 // 加载缓存文件失败
-    ErrCodeCacheFileParseFailed = 1012 // 解析缓存文件失败
+    ErrSuccess              = 0    // 操作成功
+    ErrUnknown              = 9999 // 未知错误
+
+    // token错误码1101开头
+    ErrInvalidToken         = 1101 // 无效的token
+    ErrTokenExpired         = 1102 // token已过期
+    ErrTokenNotFound        = 1103 // token不存在
+    ErrTokenLimitExceeded   = 1104 // 超出token数量限制
+    ErrAddToken             = 1105 // 生成token错误
+
+    // 用户错误码，1201开头
+    ErrInvalidUserID        = 1201 // 无效的用户ID
+    ErrUserIDNotFound       = 1202 // 用户ID不存在
+    ErrTypeAssertionError   = 1203 // 类型断言错误
+
+    // 用户组错误码，1301开头
+    ErrGroupNotFound        = 1301 // 用户组不存在
+    ErrInvalidGroupID       = 1302 // 无效的用户组ID
+
+    // IP错误码，1401开头
+    ErrInvalidIP            = 1401 // 无效的IP地址
+    ErrIPMismatch           = 1402 // IP地址不匹配
+
+    // 配置错误码，1501开头
+    ErrInvalidConfig        = 1501 // 无效的配置
+
+    // 缓存错误码，1601开头
+    ErrCacheFileLoadFailed  = 1601 // 加载缓存文件失败
+    ErrCacheFileParseFailed = 1602 // 缓存文件解析错误
+
+    // API错误码，1700开头
+    ErrAccessDenied         = 1701 // 访问被禁止的API
+    ErrInvalidURL           = 1702 // 无效的URL
+    ErrNoAPIPermission      = 1703 // 该用户的用户组没有定制API访问权限
+
+    // 内部错误，1901开头
+    ErrInternalError        = 1901 // 内部错误
 )
 ```
 
@@ -280,14 +332,14 @@ const (
 
 ```go
 // 注册新语言
-fr := wtoken.RegisterLanguage("fr")
+fr := wtoken.registerLanguage("fr")
 
 // 定义自定义错误信息
 frenchErrorMessages := map[wtoken.ILanguage]map[wtoken.ErrorCode]string{
     fr: {
-        wtoken.ErrCodeSuccess:              "Opération réussie",
-        wtoken.ErrCodeInvalidToken:         "Token invalide",
-        wtoken.ErrCodeTokenNotFound:        "Token introuvable",
+        wtoken.ErrSuccess:              "Opération réussie",
+        wtoken.ErrInvalidToken:         "Token invalide",
+        wtoken.ErrTokenNotFound:        "Token introuvable",
         // ... 更多错误信息
     },
 }

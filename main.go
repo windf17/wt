@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/windf17/wtoken/utility"
 )
 
 // manager 实现类设为私有，防止外部直接访问实例字段
@@ -53,7 +55,6 @@ var (
 //
 // 返回：
 //   - IManager: 返回实现了IManager接口的manager实例
-//   - error: 如果发生错误则返回相应的错误信息
 //
 // 注意：
 //   - 该函数保证返回的是全局唯一的manager实例
@@ -61,7 +62,7 @@ var (
 //   - 首次调用时会初始化实例，后续调用返回相同实例
 //   - 会先注册默认错误信息，然后再注册用户自定义错误信息
 //   - 支持多语言错误信息配置，可以根据config中的Language设置来返回对应语言的错误信息
-func InitTM[T any](config *Config, groups []GroupRaw, errorMessages map[ILanguage]map[ErrorCode]string) (IManager[T]) {
+func InitTM[T any](config *ConfigRaw, groups []GroupRaw, errorMessages map[Language]map[ErrorCode]string) IManager[T] {
 	var instance *Manager[T]
 
 	once.Do(func() {
@@ -71,6 +72,13 @@ func InitTM[T any](config *Config, groups []GroupRaw, errorMessages map[ILanguag
 		// 构建用户组
 		groupMap := buildGroups(groups, mergedConfig.Delimiter)
 
+		// 注册错误信息
+		for lang, messages := range errorMessages {
+			for code, message := range messages {
+				defaultRegistry.registerErrorMessage(lang, code, message)
+			}
+		}
+		
 		// 初始化实例
 		instance = &Manager[T]{
 			config: mergedConfig,
@@ -83,9 +91,6 @@ func InitTM[T any](config *Config, groups []GroupRaw, errorMessages map[ILanguag
 				ExpiredTokens:  0,
 			},
 		}
-
-		// 注册错误信息
-		registerErrorMessages(errorMessages)
 
 		// 加载缓存文件
 		if mergedConfig.CacheFilePath != "" {
@@ -104,34 +109,33 @@ func InitTM[T any](config *Config, groups []GroupRaw, errorMessages map[ILanguag
 }
 
 // mergeDefaultConfig 配置合并逻辑（独立函数便于测试）
-func mergeDefaultConfig(custom *Config) *Config {
+func mergeDefaultConfig(custom *ConfigRaw) *Config {
 	defaultConfig := &Config{
-		CacheFilePath: DefaultCacheFilePath,
-		Debug:         DefaultDebug,
-		MaxTokens:     DefaultMaxTokens,
-		Language:      "zh",
-		Delimiter:     DefaultDelimiter,
+		CacheFilePath:  DefaultConfigRaw.CacheFilePath,
+		Debug:          DefaultConfigRaw.Debug,
+		MaxTokens:      DefaultConfigRaw.MaxTokens,
+		Delimiter:      DefaultConfigRaw.Delimiter,
+		TokenRenewTime: utility.ParseDuration(DefaultConfigRaw.TokenRenewTime),
+	}
+	if custom != nil {
+		// 完整的配置合并逻辑
+		if custom.CacheFilePath != "" {
+			defaultConfig.CacheFilePath = custom.CacheFilePath
+		}
+		if string(custom.Language) != "" {
+			defaultRegistry.language = custom.Language // 修改默认语言
+		}
+		if custom.Delimiter != "" {
+			defaultConfig.Delimiter = custom.Delimiter
+		}
+		if custom.TokenRenewTime != "" {
+			defaultConfig.TokenRenewTime = utility.ParseDuration(custom.TokenRenewTime)
+		}
+		defaultConfig.MaxTokens = custom.MaxTokens
+		defaultConfig.Debug = custom.Debug
 	}
 
-	if custom == nil {
-		return defaultConfig
-	}
-
-	// 完整的配置合并逻辑
-	if custom.CacheFilePath == "" {
-		custom.CacheFilePath = defaultConfig.CacheFilePath
-	}
-	if custom.MaxTokens <= 0 {
-		custom.MaxTokens = defaultConfig.MaxTokens
-	}
-	if custom.Language == "" {
-		custom.Language = defaultConfig.Language
-	}
-	if custom.Delimiter == "" {
-		custom.Delimiter = defaultConfig.Delimiter
-	}
-
-	return custom
+	return defaultConfig
 }
 
 // buildGroups 用户组构建（分离复杂逻辑）
@@ -198,7 +202,7 @@ func (tm *Manager[T]) loadFromFile() error {
 		if tm.config.Debug {
 			fmt.Printf("Failed to read cache file: %v\n", err)
 		}
-		return tm.NewError(ErrCodeCacheFileLoadFailed)
+		return (ErrCacheFileLoadFailed)
 	}
 
 	var data struct {
@@ -210,7 +214,7 @@ func (tm *Manager[T]) loadFromFile() error {
 		if tm.config.Debug {
 			fmt.Printf("Failed to parse cache file: %v\n", err)
 		}
-		return tm.NewError(ErrCodeCacheFileParseFailed)
+		return (ErrCacheFileParseFailed)
 	}
 
 	tm.lock()
@@ -221,65 +225,44 @@ func (tm *Manager[T]) loadFromFile() error {
 	return nil
 }
 
-// NewError 创建一个新的错误数据对象
-// 根据配置的语言类型返回对应的错误信息
-// 注册错误信息
-func registerErrorMessages(errorMessages map[ILanguage]map[ErrorCode]string) {
-	// 先注册默认错误信息
-	defaultRegistry.RegisterDefaultMessages()
-	// 如果有用户自定义错误信息，则进行注册
-	for lang, messages := range errorMessages {
-		for code, message := range messages {
-			defaultRegistry.RegisterErrorMessage(lang, code, message)
-		}
-	}
-}
-
-func (m *Manager[T]) NewError(code ErrorCode) ErrorData {
-	return ErrorData{
-		Lan:  m.config.Language,
-		Code: code,
-	}
-}
-
 // GetData 获取用户数据并进行类型转换
 // 支持泛型，可以直接转换为指定类型
 // 如果token不存在或已过期则返回错误
-func (m *Manager[T]) GetData(key string) (T, error) {
+func (m *Manager[T]) GetData(key string) (T, ErrorCode) {
 	m.rLock()
 	defer m.rUnlock()
 
 	t := m.tokens[key]
 	if t == nil {
 		var zero T
-		return zero, m.NewError(ErrCodeTokenNotFound)
+		return zero, ErrTokenNotFound
 	}
 	if t.IsExpired() {
 		delete(m.tokens, key)
 		var zero T
-		return zero, m.NewError(ErrCodeTokenExpired)
+		return zero, ErrTokenExpired
 	}
-	return t.UserData, nil
+	return t.UserData, ErrSuccess
 }
 
 // SaveData 保存用户数据
 // 支持泛型，可以保存任意类型的数据
 // 如果token不存在或已过期则返回错误
-func (m *Manager[T]) SaveData(key string, data T) error {
+func (m *Manager[T]) SaveData(key string, data T) ErrorCode {
 	m.lock()
 	defer m.unlock()
 
 	t := m.tokens[key]
 	if t == nil {
-		return m.NewError(ErrCodeTokenNotFound)
+		return ErrTokenNotFound
 	}
 	if t.IsExpired() {
 		delete(m.tokens, key)
-		return m.NewError(ErrCodeTokenExpired)
+		return ErrTokenExpired
 	}
 	// 更新数据和访问时间
 	t.UserData = data
 	t.LastAccessTime = time.Now()
 	m.tokens[key] = t
-	return nil
+	return ErrSuccess
 }

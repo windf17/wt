@@ -19,27 +19,27 @@ func TestToken_IsExpired(t *testing.T) {
 		{
 			name: "永不过期的token",
 			token: &wtoken.Token[any]{
-				UserID:     1,
-				LoginTime:  tenMinutesAgo,
-				ExpireTime: 0, // 0表示永不过期
+				UserID:        1,
+				LoginTime:     tenMinutesAgo,
+				ExpireSeconds: 0, // 0表示永不过期
 			},
 			wantExpired: false,
 		},
 		{
 			name: "已过期的token(10分钟前登录，有效期5分钟)",
 			token: &wtoken.Token[any]{
-				UserID:     2,
-				LoginTime:  tenMinutesAgo,
-				ExpireTime: 300, // 300秒 = 5分钟
+				UserID:        2,
+				LoginTime:     tenMinutesAgo,
+				ExpireSeconds: 300, // 300秒 = 5分钟
 			},
 			wantExpired: true,
 		},
 		{
 			name: "未过期的token(10分钟前登录，有效期11分钟)",
 			token: &wtoken.Token[any]{
-				UserID:     3,
-				LoginTime:  tenMinutesAgo,
-				ExpireTime: 660, // 660秒 = 11分钟
+				UserID:        3,
+				LoginTime:     tenMinutesAgo,
+				ExpireSeconds: 660, // 660秒 = 11分钟
 			},
 			wantExpired: false,
 		},

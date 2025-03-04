@@ -2,6 +2,7 @@ package utility
 
 import (
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -108,4 +109,52 @@ func ParseAPIs(apiStr string, delimiter string) []string {
 	}
 
 	return newApis
+}
+
+
+// ParseDuration 解析时间字符串为秒数
+// 支持的格式：
+// - 10d 或 10D：10天
+// - 5m 或 5M：5分钟
+// - 2h 或 2H：2小时
+// - 100 或 100s 或 100S：100秒
+// 转换失败时返回0
+func ParseDuration(duration string) int64 {
+	if duration == "" {
+		return 0
+	}
+
+	// 如果是纯数字，直接按秒处理
+	if value, err := strconv.Atoi(duration); err == nil {
+		return int64(value)
+	}
+
+	// 获取最后一个字符作为单位
+	unit := duration[len(duration)-1]
+	// 如果最后一个字符是's'或'S'，去掉它再尝试转换
+	if unit == 's' || unit == 'S' {
+		if value, err := strconv.Atoi(duration[:len(duration)-1]); err == nil {
+			return int64(value)
+		}
+		return 0
+	}
+
+	// 解析数值部分
+	valueStr := duration[:len(duration)-1]
+	value, err := strconv.Atoi(valueStr)
+	if err != nil {
+		return 0
+	}
+
+	// 根据单位转换为秒
+	switch unit {
+	case 'h', 'H': // 小时
+		return int64(value * 3600)
+	case 'm', 'M': // 分钟
+		return int64(value * 60)
+	case 'd', 'D': // 天
+		return int64(value * 86400)
+	default:
+		return 0
+	}
 }

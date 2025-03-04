@@ -7,31 +7,31 @@ import (
 )
 
 // GetToken 获取token数据
-func (tm *Manager[T]) GetToken(key string) (*Token[T], ErrorData) {
+func (tm *Manager[T]) GetToken(key string) (*Token[T], ErrorCode) {
 	tm.rLock()
 	defer tm.rUnlock()
 	t := tm.tokens[key]
 	if t == nil {
-		return nil, tm.NewError(ErrCodeTokenNotFound)
+		return nil, (ErrTokenNotFound)
 	}
 	if t.IsExpired() {
 		// token已过期，则删除该token
 		delete(tm.tokens, key)
-		return nil, tm.NewError(ErrCodeTokenExpired)
+		return nil, (ErrTokenExpired)
 	}
-	return t, tm.NewError(ErrCodeSuccess)
+	return t, ErrSuccess
 }
 
 // AddToken 新增token，通过它申请token，不存储用户数据，存储用户数据另外用SaveData
-func (tm *Manager[T]) AddToken(userID uint, groupID uint, ip string) (string, ErrorData) {
+func (tm *Manager[T]) AddToken(userID uint, groupID uint, ip string) (string, ErrorCode) {
 	if ip == "" {
-		return "", tm.NewError(ErrCodeInvalidIP)
+		return "", ErrInvalidIP
 	}
 	if userID == 0 {
-		return "", tm.NewError(ErrCodeInvalidUserID)
+		return "", ErrInvalidUserID
 	}
 	if groupID == 0 {
-		return "", tm.NewError(ErrCodeInvalidGroupID)
+		return "", ErrInvalidGroupID
 	}
 
 	// 首先检查用户组是否存在
@@ -39,7 +39,7 @@ func (tm *Manager[T]) AddToken(userID uint, groupID uint, ip string) (string, Er
 	g := tm.groups[groupID]
 	if g == nil {
 		tm.rUnlock()
-		return "", tm.NewError(ErrCodeGroupNotFound)
+		return "", ErrGroupNotFound
 	}
 	expireSeconds := g.ExpireSeconds
 	allowMultipleLogin := g.AllowMultipleLogin
@@ -48,7 +48,7 @@ func (tm *Manager[T]) AddToken(userID uint, groupID uint, ip string) (string, Er
 	// 生成token
 	tokenKey, er := tm.GenerateToken()
 	if er != nil {
-		return "", tm.NewError(ErrCodeAddToken)
+		return "", ErrAddToken
 	}
 
 	// 创建用户tokens数据
@@ -59,7 +59,7 @@ func (tm *Manager[T]) AddToken(userID uint, groupID uint, ip string) (string, Er
 		GroupID:        groupID,
 		LoginTime:      now,
 		LastAccessTime: now,
-		ExpireTime:     expireSeconds,
+		ExpireSeconds:     expireSeconds,
 		UserData:       zero,
 		IP:             ip,
 	}
@@ -102,27 +102,27 @@ func (tm *Manager[T]) AddToken(userID uint, groupID uint, ip string) (string, Er
 	tm.updateStatsCount(1, true)
 	// 保存到缓存文件
 	go tm.saveToFile() // 异步保存到缓存文件
-	return tokenKey, tm.NewError(ErrCodeSuccess)
+	return tokenKey, ErrSuccess
 }
 
 // DelToken 删除指定的token
-func (tm *Manager[T]) DelToken(key string) ErrorData {
+func (tm *Manager[T]) DelToken(key string) ErrorCode {
 	tm.lock()
 	defer tm.unlock()
 	if _, exists := tm.tokens[key]; !exists {
-		return tm.NewError(ErrCodeTokenNotFound)
+		return (ErrTokenNotFound)
 	}
 	delete(tm.tokens, key)
 	tm.updateStatsCount(-1, true)
 	// 保存到缓存文件
 	go tm.saveToFile()
-	return tm.NewError(ErrCodeSuccess)
+	return ErrSuccess
 }
 
 // DelTokensByUserID 删除指定用户的所有token
-func (tm *Manager[T]) DelTokensByUserID(userID uint) ErrorData {
+func (tm *Manager[T]) DelTokensByUserID(userID uint) ErrorCode {
 	if userID == 0 {
-		return tm.NewError(ErrCodeInvalidUserID)
+		return (ErrInvalidUserID)
 	}
 	tm.lock()
 	defer tm.unlock()
@@ -138,19 +138,19 @@ func (tm *Manager[T]) DelTokensByUserID(userID uint) ErrorData {
 		// 保存到缓存文件
 		go tm.saveToFile()
 	}
-	return tm.NewError(ErrCodeSuccess)
+	return ErrSuccess
 }
 
 // DelTokensByGroupID 删除指定用户组的所有token
-func (tm *Manager[T]) DelTokensByGroupID(groupID uint) ErrorData {
+func (tm *Manager[T]) DelTokensByGroupID(groupID uint) ErrorCode {
 	if groupID == 0 {
-		return tm.NewError(ErrCodeInvalidGroupID)
+		return (ErrInvalidGroupID)
 	}
 	tm.lock()
 	defer tm.unlock()
 	// 检查用户组id是不是存在
 	if _, exists := tm.groups[groupID]; !exists {
-		return tm.NewError(ErrCodeGroupNotFound)
+		return (ErrGroupNotFound)
 	}
 	deleteCount := 0
 	for token, ut := range tm.tokens {
@@ -164,50 +164,50 @@ func (tm *Manager[T]) DelTokensByGroupID(groupID uint) ErrorData {
 		// 保存到缓存文件
 		go tm.saveToFile()
 	}
-	return tm.NewError(ErrCodeSuccess)
+	return ErrSuccess
 }
 
 // UpdateToken 更新指定的token
-func (tm *Manager[T]) UpdateToken(key string, token *Token[T]) ErrorData {
+func (tm *Manager[T]) UpdateToken(key string, token *Token[T]) ErrorCode {
 	tm.lock()
 	defer tm.unlock()
 	if _, exists := tm.tokens[key]; !exists {
-		return tm.NewError(ErrCodeTokenNotFound)
+		return (ErrTokenNotFound)
 	}
 	if token == nil {
-		return tm.NewError(ErrCodeInvalidToken)
+		return (ErrInvalidToken)
 	}
 	token.LastAccessTime = time.Now()
 	tm.tokens[key] = token
 	// 保存到缓存文件
 	go tm.saveToFile()
-	return tm.NewError(ErrCodeSuccess)
+	return ErrSuccess
 }
 
 // CheckToken 验证token是否有效
-func (tm *Manager[T]) CheckToken(key string) ErrorData {
+func (tm *Manager[T]) CheckToken(key string) ErrorCode {
 	tm.rLock()
 	defer tm.rUnlock()
 
 	if key == "" {
-		return tm.NewError(ErrCodeInvalidToken)
+		return (ErrInvalidToken)
 	}
 	t, exists := tm.tokens[key]
 	if !exists {
-		return tm.NewError(ErrCodeTokenNotFound)
+		return (ErrTokenNotFound)
 	}
 	if t == nil {
 		// token的key存在但值为nil，则删除该token
 		delete(tm.tokens, key)
-		return tm.NewError(ErrCodeInvalidToken)
+		return (ErrInvalidToken)
 	}
 	if t.IsExpired() {
 		// token已过期，则删除该token
 		delete(tm.tokens, key)
-		return tm.NewError(ErrCodeTokenExpired)
+		return (ErrTokenExpired)
 	}
 
-	return tm.NewError(ErrCodeSuccess)
+	return ErrSuccess
 }
 
 // CleanExpiredTokens 清理过期token并更新缓存文件
