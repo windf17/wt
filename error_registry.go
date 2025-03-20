@@ -35,7 +35,7 @@ func (r *ErrorRegistry) getErrorMessage(code ErrorCode) string {
 	}
 
 	// 如果找不到对应的错误信息，返回未知错误信息
-	if unknownMsg, ok := r.messages[r.language][ErrUnknown]; ok {
+	if unknownMsg, ok := r.messages[r.language][E_Unknown]; ok {
 		return fmt.Sprintf("%s, Code: %d)", unknownMsg, code)
 	}
 
@@ -44,8 +44,8 @@ func (r *ErrorRegistry) getErrorMessage(code ErrorCode) string {
 }
 
 func init() {
-	defaultRegistry.registerErrorMessage(LangChinese, ErrUnknown, "未知错误码")
-	defaultRegistry.registerErrorMessage(LangEnglish, ErrUnknown, "Unknown error code")
+	defaultRegistry.registerErrorMessage(LangChinese, E_Unknown, "未知错误码")
+	defaultRegistry.registerErrorMessage(LangEnglish, E_Unknown, "Unknown error code")
 	for lang, messages := range ErrorI18nMessages {
 		for code, message := range messages {
 			defaultRegistry.registerErrorMessage(lang, code, message)

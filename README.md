@@ -63,14 +63,14 @@ func main() {
 
     // Generate token
     tokenKey, errData := manager.AddToken(1, 1, "127.0.0.1")
-    if errData != wtoken.ErrSuccess {
+    if errData != wtoken.E_Success {
         fmt.Printf("Failed to generate token: %v\n", errData.Error())
         return
     }
 
     // Authenticate API access
     errData = manager.Authenticate(tokenKey, "/api/user", "127.0.0.1")
-    if errData == wtoken.ErrSuccess {
+    if errData == wtoken.E_Success {
         fmt.Println("Authentication successful")
     }
 }
@@ -108,10 +108,10 @@ type Token[T any] struct {
 
 ```go
 const (
-    ErrSuccess              = 0    // Operation successful
+    E_Success              = 0    // Operation successful
     ErrInvalidToken         = 1001 // Invalid token
     ErrTokenNotFound        = 1002 // Token not found
-    ErrTokenExpired         = 1003 // Token expired
+    E_TokenExpired         = 1003 // Token expired
     ErrInvalidUserID        = 1004 // Invalid user ID
     ErrInvalidGroupID       = 1005 // Invalid group ID
     ErrInvalidIP            = 1006 // Invalid IP address
@@ -135,7 +135,7 @@ fr := wtoken.registerLanguage("fr")
 // Define custom error messages
 frenchErrorMessages := map[wtoken.ILanguage]map[wtoken.ErrorCode]string{
     fr: {
-        wtoken.ErrSuccess:              "Opération réussie",
+        wtoken.E_Success:              "Opération réussie",
         wtoken.ErrInvalidToken:         "Token invalide",
         wtoken.ErrTokenNotFound:        "Token introuvable",
         // ... more error messages
@@ -253,20 +253,20 @@ func main() {
 
     // 生成用户token
     tokenKey, errData := manager.AddToken(1, 1, "127.0.0.1")
-    if errData != wtoken.ErrSuccess {
+    if errData != wtoken.E_Success {
         fmt.Printf("生成token失败：%v\n", errData.Error())
         return
     }
 
     // API鉴权测试
     errData = manager.Authenticate(tokenKey, "/api/user", "127.0.0.1")
-    if errData == wtoken.ErrSuccess {
+    if errData == wtoken.E_Success {
         fmt.Println("鉴权成功")
     }
 }
 ```
 
-## Token结构
+## Token 结构
 
 ```go
 type Token[T any] struct {
@@ -286,12 +286,12 @@ type Token[T any] struct {
 
 ```go
 const (
-    ErrSuccess              = 0    // 操作成功
-    ErrUnknown              = 9999 // 未知错误
+    E_Success              = 0    // 操作成功
+    E_Unknown              = 9999 // 未知错误
 
     // token错误码1101开头
     ErrInvalidToken         = 1101 // 无效的token
-    ErrTokenExpired         = 1102 // token已过期
+    E_TokenExpired         = 1102 // token已过期
     ErrTokenNotFound        = 1103 // token不存在
     ErrTokenLimitExceeded   = 1104 // 超出token数量限制
     ErrAddToken             = 1105 // 生成token错误
@@ -337,7 +337,7 @@ fr := wtoken.registerLanguage("fr")
 // 定义自定义错误信息
 frenchErrorMessages := map[wtoken.ILanguage]map[wtoken.ErrorCode]string{
     fr: {
-        wtoken.ErrSuccess:              "Opération réussie",
+        wtoken.E_Success:              "Opération réussie",
         wtoken.ErrInvalidToken:         "Token invalide",
         wtoken.ErrTokenNotFound:        "Token introuvable",
         // ... 更多错误信息

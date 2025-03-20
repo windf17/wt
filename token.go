@@ -12,26 +12,26 @@ func (tm *Manager[T]) GetToken(key string) (*Token[T], ErrorCode) {
 	defer tm.rUnlock()
 	t := tm.tokens[key]
 	if t == nil {
-		return nil, (ErrTokenNotFound)
+		return nil, (E_InvalidToken)
 	}
 	if t.IsExpired() {
 		// token已过期，则删除该token
 		delete(tm.tokens, key)
-		return nil, (ErrTokenExpired)
+		return nil, (E_TokenExpired)
 	}
-	return t, ErrSuccess
+	return t, E_Success
 }
 
 // AddToken 新增token，通过它申请token，不存储用户数据，存储用户数据另外用SaveData
 func (tm *Manager[T]) AddToken(userID uint, groupID uint, ip string) (string, ErrorCode) {
 	if ip == "" {
-		return "", ErrInvalidIP
+		return "", E_InvalidIP
 	}
 	if userID == 0 {
-		return "", ErrInvalidUserID
+		return "", E_UserInvalid
 	}
 	if groupID == 0 {
-		return "", ErrInvalidGroupID
+		return "", E_GroupInvalid
 	}
 
 	// 首先检查用户组是否存在
@@ -39,7 +39,7 @@ func (tm *Manager[T]) AddToken(userID uint, groupID uint, ip string) (string, Er
 	g := tm.groups[groupID]
 	if g == nil {
 		tm.rUnlock()
-		return "", ErrGroupNotFound
+		return "", E_GroupNotFound
 	}
 	expireSeconds := g.ExpireSeconds
 	allowMultipleLogin := g.AllowMultipleLogin
@@ -48,7 +48,7 @@ func (tm *Manager[T]) AddToken(userID uint, groupID uint, ip string) (string, Er
 	// 生成token
 	tokenKey, er := tm.GenerateToken()
 	if er != nil {
-		return "", ErrAddToken
+		return "", E_TokenGenerate
 	}
 
 	// 创建用户tokens数据
@@ -59,7 +59,7 @@ func (tm *Manager[T]) AddToken(userID uint, groupID uint, ip string) (string, Er
 		GroupID:        groupID,
 		LoginTime:      now,
 		LastAccessTime: now,
-		ExpireSeconds:     expireSeconds,
+		ExpireSeconds:  expireSeconds,
 		UserData:       zero,
 		IP:             ip,
 	}
@@ -102,7 +102,7 @@ func (tm *Manager[T]) AddToken(userID uint, groupID uint, ip string) (string, Er
 	tm.updateStatsCount(1, true)
 	// 保存到缓存文件
 	go tm.saveToFile() // 异步保存到缓存文件
-	return tokenKey, ErrSuccess
+	return tokenKey, E_Success
 }
 
 // DelToken 删除指定的token
@@ -110,19 +110,19 @@ func (tm *Manager[T]) DelToken(key string) ErrorCode {
 	tm.lock()
 	defer tm.unlock()
 	if _, exists := tm.tokens[key]; !exists {
-		return (ErrTokenNotFound)
+		return (E_InvalidToken)
 	}
 	delete(tm.tokens, key)
 	tm.updateStatsCount(-1, true)
 	// 保存到缓存文件
 	go tm.saveToFile()
-	return ErrSuccess
+	return E_Success
 }
 
 // DelTokensByUserID 删除指定用户的所有token
 func (tm *Manager[T]) DelTokensByUserID(userID uint) ErrorCode {
 	if userID == 0 {
-		return (ErrInvalidUserID)
+		return (E_UserInvalid)
 	}
 	tm.lock()
 	defer tm.unlock()
@@ -138,19 +138,19 @@ func (tm *Manager[T]) DelTokensByUserID(userID uint) ErrorCode {
 		// 保存到缓存文件
 		go tm.saveToFile()
 	}
-	return ErrSuccess
+	return E_Success
 }
 
 // DelTokensByGroupID 删除指定用户组的所有token
 func (tm *Manager[T]) DelTokensByGroupID(groupID uint) ErrorCode {
 	if groupID == 0 {
-		return (ErrInvalidGroupID)
+		return (E_GroupInvalid)
 	}
 	tm.lock()
 	defer tm.unlock()
 	// 检查用户组id是不是存在
 	if _, exists := tm.groups[groupID]; !exists {
-		return (ErrGroupNotFound)
+		return (E_GroupNotFound)
 	}
 	deleteCount := 0
 	for token, ut := range tm.tokens {
@@ -164,7 +164,7 @@ func (tm *Manager[T]) DelTokensByGroupID(groupID uint) ErrorCode {
 		// 保存到缓存文件
 		go tm.saveToFile()
 	}
-	return ErrSuccess
+	return E_Success
 }
 
 // UpdateToken 更新指定的token
@@ -172,16 +172,16 @@ func (tm *Manager[T]) UpdateToken(key string, token *Token[T]) ErrorCode {
 	tm.lock()
 	defer tm.unlock()
 	if _, exists := tm.tokens[key]; !exists {
-		return (ErrTokenNotFound)
+		return (E_InvalidToken)
 	}
 	if token == nil {
-		return (ErrInvalidToken)
+		return (E_InvalidToken)
 	}
 	token.LastAccessTime = time.Now()
 	tm.tokens[key] = token
 	// 保存到缓存文件
 	go tm.saveToFile()
-	return ErrSuccess
+	return E_Success
 }
 
 // CheckToken 验证token是否有效
@@ -190,24 +190,24 @@ func (tm *Manager[T]) CheckToken(key string) ErrorCode {
 	defer tm.rUnlock()
 
 	if key == "" {
-		return (ErrInvalidToken)
+		return (E_InvalidToken)
 	}
 	t, exists := tm.tokens[key]
 	if !exists {
-		return (ErrTokenNotFound)
+		return (E_InvalidToken)
 	}
 	if t == nil {
 		// token的key存在但值为nil，则删除该token
 		delete(tm.tokens, key)
-		return (ErrInvalidToken)
+		return (E_InvalidToken)
 	}
 	if t.IsExpired() {
 		// token已过期，则删除该token
 		delete(tm.tokens, key)
-		return (ErrTokenExpired)
+		return (E_TokenExpired)
 	}
 
-	return ErrSuccess
+	return E_Success
 }
 
 // CleanExpiredTokens 清理过期token并更新缓存文件

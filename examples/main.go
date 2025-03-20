@@ -35,7 +35,7 @@ func main() {
 	// 	"role":     "user",
 	// }
 	tokenKey, errData := tokenManager.AddToken(1001, 1, "192.168.1.100")
-	if errData != wtoken.ErrSuccess {
+	if errData != wtoken.E_Success {
 		fmt.Printf("生成token失败：%v\n", errData.Error())
 		return
 	}
@@ -44,7 +44,7 @@ func main() {
 	// 5. API鉴权测试
 	// 5.1 允许访问的API
 	errData = tokenManager.Authenticate(tokenKey, "/api/user", "192.168.1.100")
-	if errData == wtoken.ErrSuccess {
+	if errData == wtoken.E_Success {
 		fmt.Println("访问/api/user鉴权成功")
 	} else {
 		fmt.Printf("访问/api/user鉴权失败：%v\n", errData.Error())
@@ -52,31 +52,31 @@ func main() {
 
 	// 5.2 禁止访问的API
 	errData = tokenManager.Authenticate(tokenKey, "/api/admin", "192.168.1.100")
-	if errData != wtoken.ErrSuccess {
+	if errData != wtoken.E_Success {
 		fmt.Printf("访问/api/admin鉴权失败（预期结果）：%v\n", errData.Error())
 	}
 
 	// 6. 获取token信息
 	token, errData := tokenManager.GetToken(tokenKey)
-	if errData == wtoken.ErrSuccess {
+	if errData == wtoken.E_Success {
 		fmt.Printf("token信息：%+v\n", token)
 	}
 
 	// 7. 获取用户数据
 	userInfo, err := tokenManager.GetData(tokenKey)
-	if err == wtoken.ErrSuccess {
+	if err == wtoken.E_Success {
 		fmt.Printf("用户数据：%+v\n", userInfo)
 	}
 
 	// 8. 更新用户数据
 	userInfo = "admin"
-	if err = tokenManager.SaveData(tokenKey, userInfo); err == wtoken.ErrSuccess {
+	if err = tokenManager.SaveData(tokenKey, userInfo); err == wtoken.E_Success {
 		fmt.Println("更新用户数据成功")
 	}
 
 	// 9. 删除token
 	errData = tokenManager.DelToken(tokenKey)
-	if errData == wtoken.ErrSuccess {
+	if errData == wtoken.E_Success {
 		fmt.Println("删除token成功")
 	}
 

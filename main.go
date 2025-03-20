@@ -78,7 +78,7 @@ func InitTM[T any](config *ConfigRaw, groups []GroupRaw, errorMessages map[Langu
 				defaultRegistry.registerErrorMessage(lang, code, message)
 			}
 		}
-		
+
 		// 初始化实例
 		instance = &Manager[T]{
 			config: mergedConfig,
@@ -202,7 +202,7 @@ func (tm *Manager[T]) loadFromFile() error {
 		if tm.config.Debug {
 			fmt.Printf("Failed to read cache file: %v\n", err)
 		}
-		return (ErrCacheFileLoadFailed)
+		return (E_CacheLoadFail)
 	}
 
 	var data struct {
@@ -214,7 +214,7 @@ func (tm *Manager[T]) loadFromFile() error {
 		if tm.config.Debug {
 			fmt.Printf("Failed to parse cache file: %v\n", err)
 		}
-		return (ErrCacheFileParseFailed)
+		return (E_CacheParseFail)
 	}
 
 	tm.lock()
@@ -235,14 +235,14 @@ func (m *Manager[T]) GetData(key string) (T, ErrorCode) {
 	t := m.tokens[key]
 	if t == nil {
 		var zero T
-		return zero, ErrTokenNotFound
+		return zero, E_InvalidToken
 	}
 	if t.IsExpired() {
 		delete(m.tokens, key)
 		var zero T
-		return zero, ErrTokenExpired
+		return zero, E_TokenExpired
 	}
-	return t.UserData, ErrSuccess
+	return t.UserData, E_Success
 }
 
 // SaveData 保存用户数据
@@ -254,15 +254,15 @@ func (m *Manager[T]) SaveData(key string, data T) ErrorCode {
 
 	t := m.tokens[key]
 	if t == nil {
-		return ErrTokenNotFound
+		return E_InvalidToken
 	}
 	if t.IsExpired() {
 		delete(m.tokens, key)
-		return ErrTokenExpired
+		return E_TokenExpired
 	}
 	// 更新数据和访问时间
 	t.UserData = data
 	t.LastAccessTime = time.Now()
 	m.tokens[key] = t
-	return ErrSuccess
+	return E_Success
 }
