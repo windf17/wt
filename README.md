@@ -1,4 +1,4 @@
-# WToken - 高性能 Token 管理系统 | High-Performance Token Management System
+# WT - 高性能 Token 管理系统 | High-Performance Token Management System
 
 <div align="center">
 
@@ -11,12 +11,12 @@
 
 # 中文文档
 
-WToken 是一个**企业级**高性能、线程安全的 Token 管理系统，专为 Go 语言设计。经过严格的代码审核和性能优化，支持多用户组权限管理、Token 生命周期管理、并发访问控制等企业级功能，已通过生产环境验证。
+WT 是一个**企业级**高性能、线程安全的 Token 管理系统，专为 Go 语言设计。经过严格的代码审核和性能优化，支持多用户组权限管理、Token 生命周期管理、并发访问控制等企业级功能，已通过生产环境验证。
 
 ## 📦 快速安装
 
 ```bash
-go get github.com/windf17/wtoken
+go get github.com/windf17/wt
 ```
 
 ### 系统要求
@@ -34,43 +34,43 @@ package main
 
 import (
     "fmt"
-    "github.com/windf17/wtoken"
+    "github.com/windf17/wt"
 )
 
 func main() {
     // 1. 创建基础配置
-    config := &wtoken.ConfigRaw{
+    config := &wt.ConfigRaw{
         MaxTokens:      1000,
         TokenRenewTime: "24h",
         Language:       "zh",
     }
 
     // 2. 初始化Token管理器（无权限控制模式）
-    tm := wtoken.InitTM[map[string]any](config, nil, nil)
+    tm := wt.InitTM[map[string]any](config, nil, nil)
     defer tm.Close()
 
     // 3. 创建用户Token
     token, err := tm.AddToken("user123", 0, "192.168.1.1")
-    if err == wtoken.E_Success {
+    if err == wt.E_Success {
         fmt.Printf("✅ Token创建成功: %s\n", token)
     }
 
     // 4. 验证Token（无权限控制，所有请求都会通过）
     authResult := tm.Auth(token, "192.168.1.1", "/api/any-endpoint")
-    if authResult == wtoken.E_Success {
+    if authResult == wt.E_Success {
         fmt.Println("✅ 访问验证通过")
     }
 
     // 5. 获取Token信息
     tokenInfo, getErr := tm.GetToken(token)
-    if getErr == wtoken.E_Success {
+    if getErr == wt.E_Success {
         fmt.Printf("📋 Token信息: 用户ID=%v, 组ID=%v\n", 
             tokenInfo.UserID, tokenInfo.GroupID)
     }
 
     // 6. 删除Token（用户登出）
     delErr := tm.DelToken(token)
-    if delErr == wtoken.E_Success {
+    if delErr == wt.E_Success {
         fmt.Println("✅ Token删除成功")
     }
 }
@@ -83,13 +83,13 @@ package main
 
 import (
     "fmt"
-    "github.com/windf17/wtoken"
-    "github.com/windf17/wtoken/models"
+    "github.com/windf17/wt"
+    "github.com/windf17/wt/models"
 )
 
 func main() {
     // 1. 创建配置
-    config := &wtoken.ConfigRaw{
+    config := &wt.ConfigRaw{
         MaxTokens:      1000,
         TokenRenewTime: "24h",
         Language:       "zh",
@@ -117,7 +117,7 @@ func main() {
     }
 
     // 3. 初始化Token管理器
-    tm := wtoken.InitTM[map[string]any](config, groups, nil)
+    tm := wt.InitTM[map[string]any](config, groups, nil)
     defer tm.Close()
 
     // 4. 模拟用户登录
@@ -127,16 +127,16 @@ func main() {
     fmt.Println("=== 权限测试 ===")
     
     // 5. 测试管理员权限
-    if tm.Auth(adminToken, "192.168.1.100", "/api/admin/users") == wtoken.E_Success {
+    if tm.Auth(adminToken, "192.168.1.100", "/api/admin/users") == wt.E_Success {
         fmt.Println("✅ 管理员可以访问 /api/admin/users")
     }
     
     // 6. 测试普通用户权限
-    if tm.Auth(userToken, "192.168.1.101", "/api/user/profile") == wtoken.E_Success {
+    if tm.Auth(userToken, "192.168.1.101", "/api/user/profile") == wt.E_Success {
         fmt.Println("✅ 普通用户可以访问 /api/user/profile")
     }
     
-    if tm.Auth(userToken, "192.168.1.101", "/api/admin/users") != wtoken.E_Success {
+    if tm.Auth(userToken, "192.168.1.101", "/api/admin/users") != wt.E_Success {
         fmt.Println("❌ 普通用户无法访问 /api/admin/users")
     }
 
@@ -213,14 +213,14 @@ type UserData = string // 存储JSON字符串
 #### 4.2 初始化Token管理器
 
 ```go
-// 使用自定义结构体
-tm := wtoken.InitTM[UserInfo](config, groups, nil)
+// Use custom struct
+tm := wt.InitTM[UserInfo](config, groups, nil)
 
-// 使用map类型
-tm := wtoken.InitTM[map[string]any](config, groups, nil)
+// Use map type
+tm := wt.InitTM[map[string]any](config, groups, nil)
 
-// 使用字符串类型
-tm := wtoken.InitTM[string](config, groups, nil)
+// Use string type
+tm := wt.InitTM[string](config, groups, nil)
 ```
 
 #### 4.3 存储用户数据
@@ -230,22 +230,22 @@ package main
 
 import (
     "fmt"
-    "github.com/windf17/wtoken"
+    "github.com/windf17/wt"
 )
 
 func main() {
     // 初始化管理器
-    config := &wtoken.ConfigRaw{
+    config := &wt.ConfigRaw{
         MaxTokens:      1000,
         TokenRenewTime: "24h",
         Language:       "zh",
     }
-    tm := wtoken.InitTM[UserInfo](config, nil, nil)
+    tm := wt.InitTM[UserInfo](config, nil, nil)
     defer tm.Close()
 
     // 1. 创建Token
     token, err := tm.AddToken(1001, 1, "192.168.1.1")
-    if err != wtoken.E_Success {
+    if err != wt.E_Success {
         fmt.Printf("创建Token失败: %v\n", err)
         return
     }
@@ -262,7 +262,7 @@ func main() {
     }
 
     err = tm.SetUserData(token, userData)
-    if err == wtoken.E_Success {
+    if err == wt.E_Success {
         fmt.Println("✅ 用户数据保存成功")
     } else {
         fmt.Printf("❌ 用户数据保存失败: %v\n", err)
@@ -274,7 +274,7 @@ func main() {
 
 ```go
 // 在权限验证中间件中获取用户信息
-func AuthMiddleware(tm *wtoken.Manager[UserInfo]) func(http.Handler) http.Handler {
+func AuthMiddleware(tm *wt.Manager[UserInfo]) func(http.Handler) http.Handler {
     return func(next http.Handler) http.Handler {
         return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             // 1. 从请求头获取Token
@@ -286,14 +286,14 @@ func AuthMiddleware(tm *wtoken.Manager[UserInfo]) func(http.Handler) http.Handle
 
             // 2. 验证Token权限
             clientIP := r.RemoteAddr
-            if tm.Auth(token, clientIP, r.URL.Path) != wtoken.E_Success {
+            if tm.Auth(token, clientIP, r.URL.Path) != wt.E_Success {
                 http.Error(w, "权限不足", http.StatusForbidden)
                 return
             }
 
             // 3. 获取用户数据
             userData, err := tm.GetUserData(token)
-            if err == wtoken.E_Success {
+            if err == wt.E_Success {
                 // 将用户信息添加到请求上下文
                 ctx := context.WithValue(r.Context(), "user", userData)
                 r = r.WithContext(ctx)
@@ -336,10 +336,10 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 
 ```go
 // 更新用户信息
-func UpdateUserData(tm *wtoken.Manager[UserInfo], token string) {
+func UpdateUserData(tm *wt.Manager[UserInfo], token string) {
     // 1. 先获取现有数据
     userData, err := tm.GetUserData(token)
-    if err != wtoken.E_Success {
+    if err != wt.E_Success {
         fmt.Printf("获取用户数据失败: %v\n", err)
         return
     }
@@ -351,7 +351,7 @@ func UpdateUserData(tm *wtoken.Manager[UserInfo], token string) {
 
     // 3. 保存更新后的数据
     err = tm.SetUserData(token, userData)
-    if err == wtoken.E_Success {
+    if err == wt.E_Success {
         fmt.Println("✅ 用户数据更新成功")
     } else {
         fmt.Printf("❌ 用户数据更新失败: %v\n", err)
@@ -364,7 +364,7 @@ func UpdateUserData(tm *wtoken.Manager[UserInfo], token string) {
 ```go
 // 使用map存储动态数据
 func FlexibleUserData() {
-    tm := wtoken.InitTM[map[string]any](config, nil, nil)
+    tm := wt.InitTM[map[string]any](config, nil, nil)
     defer tm.Close()
 
     token, _ := tm.AddToken(1001, 1, "192.168.1.1")
@@ -429,11 +429,11 @@ type UserInfo struct {
 
 // 2. 封装用户数据操作
 type UserService struct {
-    tm *wtoken.Manager[UserInfo]
+    tm *wt.Manager[UserInfo]
 }
 
 func (s *UserService) SetUser(token string, user UserInfo) error {
-    if err := s.tm.SetUserData(token, user); err != wtoken.E_Success {
+    if err := s.tm.SetUserData(token, user); err != wt.E_Success {
         return fmt.Errorf("设置用户数据失败: %v", err)
     }
     return nil
@@ -441,7 +441,7 @@ func (s *UserService) SetUser(token string, user UserInfo) error {
 
 func (s *UserService) GetUser(token string) (*UserInfo, error) {
     user, err := s.tm.GetUserData(token)
-    if err != wtoken.E_Success {
+    if err != wt.E_Success {
         return nil, fmt.Errorf("获取用户数据失败: %v", err)
     }
     return &user, nil
@@ -536,8 +536,8 @@ go tool cover -html=coverage.out
 
 ## 📞 联系我们
 
-- 项目主页: [https://github.com/windf17/wtoken](https://github.com/windf17/wtoken)
-- 问题反馈: [https://github.com/windf17/wtoken/issues](https://github.com/windf17/wtoken/issues)
+- 项目主页: [https://github.com/windf17/wt](https://github.com/windf17/wt)
+- 问题反馈: [https://github.com/windf17/wt/issues](https://github.com/windf17/wt/issues)
 - 邮箱: 40859419@qq.com
 
 ---
@@ -548,12 +548,12 @@ go tool cover -html=coverage.out
 
 # English Documentation
 
-WToken is an **enterprise-grade** high-performance, thread-safe Token management system designed for Go language. After rigorous code review and performance optimization, it supports multi-user group permission management, Token lifecycle management, concurrent access control and other enterprise-level features, and has been verified in production environments.
+WT is an **enterprise-grade** high-performance, thread-safe Token management system designed for Go language. After rigorous code review and performance optimization, it supports multi-user group permission management, Token lifecycle management, concurrent access control and other enterprise-level features, and has been verified in production environments.
 
 ## 📦 Quick Installation
 
 ```bash
-go get github.com/windf17/wtoken
+go get github.com/windf17/wt
 ```
 
 ### System Requirements
@@ -571,43 +571,43 @@ package main
 
 import (
     "fmt"
-    "github.com/windf17/wtoken"
+    "github.com/windf17/wt"
 )
 
 func main() {
     // 1. Create basic configuration
-    config := &wtoken.ConfigRaw{
+    config := &wt.ConfigRaw{
         MaxTokens:      1000,
         TokenRenewTime: "24h",
         Language:       "en",
     }
 
     // 2. Initialize Token manager (no permission control mode)
-    tm := wtoken.InitTM[map[string]any](config, nil, nil)
+    tm := wt.InitTM[map[string]any](config, nil, nil)
     defer tm.Close()
 
     // 3. Create user Token
     token, err := tm.AddToken("user123", 0, "192.168.1.1")
-    if err == wtoken.E_Success {
+    if err == wt.E_Success {
         fmt.Printf("✅ Token created successfully: %s\n", token)
     }
 
     // 4. Verify Token (no permission control, all requests will pass)
     authResult := tm.Auth(token, "192.168.1.1", "/api/any-endpoint")
-    if authResult == wtoken.E_Success {
+    if authResult == wt.E_Success {
         fmt.Println("✅ Access verification passed")
     }
 
     // 5. Get Token information
     tokenInfo, getErr := tm.GetToken(token)
-    if getErr == wtoken.E_Success {
+    if getErr == wt.E_Success {
         fmt.Printf("📋 Token info: UserID=%v, GroupID=%v\n", 
             tokenInfo.UserID, tokenInfo.GroupID)
     }
 
     // 6. Delete Token (user logout)
     delErr := tm.DelToken(token)
-    if delErr == wtoken.E_Success {
+    if delErr == wt.E_Success {
         fmt.Println("✅ Token deleted successfully")
     }
 }
@@ -620,13 +620,13 @@ package main
 
 import (
     "fmt"
-    "github.com/windf17/wtoken"
-    "github.com/windf17/wtoken/models"
+    "github.com/windf17/wt"
+    "github.com/windf17/wt/models"
 )
 
 func main() {
     // 1. Create configuration
-    config := &wtoken.ConfigRaw{
+    config := &wt.ConfigRaw{
         MaxTokens:      1000,
         TokenRenewTime: "24h",
         Language:       "en",
@@ -654,7 +654,7 @@ func main() {
     }
 
     // 3. Initialize Token manager
-    tm := wtoken.InitTM[map[string]any](config, groups, nil)
+    tm := wt.InitTM[map[string]any](config, groups, nil)
     defer tm.Close()
 
     // 4. Simulate user login
@@ -664,16 +664,16 @@ func main() {
     fmt.Println("=== Permission Test ===")
     
     // 5. Test administrator permissions
-    if tm.Auth(adminToken, "192.168.1.100", "/api/admin/users") == wtoken.E_Success {
+    if tm.Auth(adminToken, "192.168.1.100", "/api/admin/users") == wt.E_Success {
         fmt.Println("✅ Administrator can access /api/admin/users")
     }
     
     // 6. Test regular user permissions
-    if tm.Auth(userToken, "192.168.1.101", "/api/user/profile") == wtoken.E_Success {
+    if tm.Auth(userToken, "192.168.1.101", "/api/user/profile") == wt.E_Success {
         fmt.Println("✅ Regular user can access /api/user/profile")
     }
     
-    if tm.Auth(userToken, "192.168.1.101", "/api/admin/users") != wtoken.E_Success {
+    if tm.Auth(userToken, "192.168.1.101", "/api/admin/users") != wt.E_Success {
         fmt.Println("❌ Regular user cannot access /api/admin/users")
     }
 
@@ -751,13 +751,13 @@ type UserData = string // Store JSON string
 
 ```go
 // Use custom struct
-tm := wtoken.InitTM[UserInfo](config, groups, nil)
+tm := wt.InitTM[UserInfo](config, groups, nil)
 
 // Use map type
-tm := wtoken.InitTM[map[string]any](config, groups, nil)
+tm := wt.InitTM[map[string]any](config, groups, nil)
 
 // Use string type
-tm := wtoken.InitTM[string](config, groups, nil)
+tm := wt.InitTM[string](config, groups, nil)
 ```
 
 #### 4.3 Store User Data
@@ -767,22 +767,22 @@ package main
 
 import (
     "fmt"
-    "github.com/windf17/wtoken"
+    "github.com/windf17/wt"
 )
 
 func main() {
     // Initialize manager
-    config := &wtoken.ConfigRaw{
+    config := &wt.ConfigRaw{
         MaxTokens:      1000,
         TokenRenewTime: "24h",
         Language:       "en",
     }
-    tm := wtoken.InitTM[UserInfo](config, nil, nil)
+    tm := wt.InitTM[UserInfo](config, nil, nil)
     defer tm.Close()
 
     // 1. Create Token
     token, err := tm.AddToken(1001, 1, "192.168.1.1")
-    if err != wtoken.E_Success {
+    if err != wt.E_Success {
         fmt.Printf("Failed to create Token: %v\n", err)
         return
     }
@@ -799,7 +799,7 @@ func main() {
     }
 
     err = tm.SetUserData(token, userData)
-    if err == wtoken.E_Success {
+    if err == wt.E_Success {
         fmt.Println("✅ User data saved successfully")
     } else {
         fmt.Printf("❌ Failed to save user data: %v\n", err)
@@ -811,7 +811,7 @@ func main() {
 
 ```go
 // Get user information in authentication middleware
-func AuthMiddleware(tm *wtoken.Manager[UserInfo]) func(http.Handler) http.Handler {
+func AuthMiddleware(tm *wt.Manager[UserInfo]) func(http.Handler) http.Handler {
     return func(next http.Handler) http.Handler {
         return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
             // 1. Get Token from request header
@@ -823,14 +823,14 @@ func AuthMiddleware(tm *wtoken.Manager[UserInfo]) func(http.Handler) http.Handle
 
             // 2. Verify Token permissions
             clientIP := r.RemoteAddr
-            if tm.Auth(token, clientIP, r.URL.Path) != wtoken.E_Success {
+            if tm.Auth(token, clientIP, r.URL.Path) != wt.E_Success {
                 http.Error(w, "Insufficient permissions", http.StatusForbidden)
                 return
             }
 
             // 3. Get user data
             userData, err := tm.GetUserData(token)
-            if err == wtoken.E_Success {
+            if err == wt.E_Success {
                 // Add user information to request context
                 ctx := context.WithValue(r.Context(), "user", userData)
                 r = r.WithContext(ctx)
@@ -873,10 +873,10 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 
 ```go
 // Update user information
-func UpdateUserData(tm *wtoken.Manager[UserInfo], token string) {
+func UpdateUserData(tm *wt.Manager[UserInfo], token string) {
     // 1. Get existing data first
     userData, err := tm.GetUserData(token)
-    if err != wtoken.E_Success {
+    if err != wt.E_Success {
         fmt.Printf("Failed to get user data: %v\n", err)
         return
     }
@@ -888,7 +888,7 @@ func UpdateUserData(tm *wtoken.Manager[UserInfo], token string) {
 
     // 3. Save updated data
     err = tm.SetUserData(token, userData)
-    if err == wtoken.E_Success {
+    if err == wt.E_Success {
         fmt.Println("✅ User data updated successfully")
     } else {
         fmt.Printf("❌ Failed to update user data: %v\n", err)
@@ -901,7 +901,7 @@ func UpdateUserData(tm *wtoken.Manager[UserInfo], token string) {
 ```go
 // Use map to store dynamic data
 func FlexibleUserData() {
-    tm := wtoken.InitTM[map[string]any](config, nil, nil)
+    tm := wt.InitTM[map[string]any](config, nil, nil)
     defer tm.Close()
 
     token, _ := tm.AddToken(1001, 1, "192.168.1.1")
@@ -966,11 +966,11 @@ type UserInfo struct {
 
 // 2. Encapsulate user data operations
 type UserService struct {
-    tm *wtoken.Manager[UserInfo]
+    tm *wt.Manager[UserInfo]
 }
 
 func (s *UserService) SetUser(token string, user UserInfo) error {
-    if err := s.tm.SetUserData(token, user); err != wtoken.E_Success {
+    if err := s.tm.SetUserData(token, user); err != wt.E_Success {
         return fmt.Errorf("failed to set user data: %v", err)
     }
     return nil
@@ -978,7 +978,7 @@ func (s *UserService) SetUser(token string, user UserInfo) error {
 
 func (s *UserService) GetUser(token string) (*UserInfo, error) {
     user, err := s.tm.GetUserData(token)
-    if err != wtoken.E_Success {
+    if err != wt.E_Success {
         return nil, fmt.Errorf("failed to get user data: %v", err)
     }
     return &user, nil
@@ -1073,8 +1073,8 @@ Thanks to all developers who contributed to this project.
 
 ## 📞 Contact Us
 
-- Project Homepage: [https://github.com/windf17/wtoken](https://github.com/windf17/wtoken)
-- Issue Reports: [https://github.com/windf17/wtoken/issues](https://github.com/windf17/wtoken/issues)
+- Project Homepage: [https://github.com/windf17/wt](https://github.com/windf17/wt)
+- Issue Reports: [https://github.com/windf17/wt/issues](https://github.com/windf17/wt/issues)
 - Email: 40859419@qq.com
 
 ---
