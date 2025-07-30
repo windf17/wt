@@ -1,4 +1,4 @@
-module github.com/windf17/wtoken
+module github.com/windf17/wt
 
 go 1.23.0
 

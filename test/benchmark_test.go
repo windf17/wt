@@ -6,15 +6,15 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/windf17/wtoken"
-	"github.com/windf17/wtoken/models"
+	"github.com/windf17/wt"
+	"github.com/windf17/wt/models"
 )
 
 /**
  * BenchmarkTokenOperations 基准测试token操作
  */
 func BenchmarkTokenOperations(b *testing.B) {
-	tm := wtoken.GetInstance[any]()
+	tm := wt.GetInstance[any]()
 	if tm == nil {
 		b.Fatal("Failed to get token manager instance")
 	}
@@ -29,36 +29,36 @@ func BenchmarkTokenOperations(b *testing.B) {
 		AllowMultipleLogin: 1,
 	}
 	err := tm.AddGroup(group)
-	if err != wtoken.E_Success && err != wtoken.E_GroupExists {
+	if err != wt.E_Success && err != wt.E_GroupExists {
 		b.Fatalf("Failed to add group: %v", err)
 	}
 
 	// 预热
 	for i := 0; i < 100; i++ {
-				tokenKey, _ := tm.AddToken(uint(i+1), 1, "192.168.1.1")
-				_, _ = tm.GetToken(tokenKey)
-				tm.DelToken(tokenKey)
-			}
+		tokenKey, _ := tm.AddToken(uint(i+1), 1, "192.168.1.1")
+		_, _ = tm.GetToken(tokenKey)
+		tm.DelToken(tokenKey)
+	}
 
 	b.Run("AddToken", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-				userID := uint(i%1000 + 1) // 循环使用1-1000的用户ID
-				ip := fmt.Sprintf("192.168.%d.%d", (i%254)+1, (i%254)+1)
-				_, err := tm.AddToken(userID, 1, ip)
-			if err != wtoken.E_Success {
+			userID := uint(i%1000 + 1) // 循环使用1-1000的用户ID
+			ip := fmt.Sprintf("192.168.%d.%d", (i%254)+1, (i%254)+1)
+			_, err := tm.AddToken(userID, 1, ip)
+			if err != wt.E_Success {
 				b.Errorf("AddToken failed: %v", err)
 			}
-			}
+		}
 	})
 
 	b.Run("GetToken", func(b *testing.B) {
 		// 预先添加一些token
-			tokens := make([]string, 1000)
-			for i := 0; i < 1000; i++ {
-				tokenKey, _ := tm.AddToken(uint(i+1), 1, "192.168.1.1")
-				tokens[i] = tokenKey
-			}
+		tokens := make([]string, 1000)
+		for i := 0; i < 1000; i++ {
+			tokenKey, _ := tm.AddToken(uint(i+1), 1, "192.168.1.1")
+			tokens[i] = tokenKey
+		}
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -69,11 +69,11 @@ func BenchmarkTokenOperations(b *testing.B) {
 
 	b.Run("Auth", func(b *testing.B) {
 		// 预先添加一些token
-			tokens := make([]string, 1000)
-			for i := 0; i < 1000; i++ {
-				tokenKey, _ := tm.AddToken(uint(i+1), 1, "192.168.1.1")
-				tokens[i] = tokenKey
-			}
+		tokens := make([]string, 1000)
+		for i := 0; i < 1000; i++ {
+			tokenKey, _ := tm.AddToken(uint(i+1), 1, "192.168.1.1")
+			tokens[i] = tokenKey
+		}
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -87,7 +87,7 @@ func BenchmarkTokenOperations(b *testing.B) {
 		tokens := make([]string, 1000)
 		for i := 0; i < 1000; i++ {
 			tokenKey, err := tm.AddToken(uint(i+1), 1, "192.168.1.1")
-			if err != wtoken.E_Success {
+			if err != wt.E_Success {
 				b.Fatalf("Failed to add token: %v", err)
 			}
 			tokens[i] = tokenKey
@@ -98,14 +98,14 @@ func BenchmarkTokenOperations(b *testing.B) {
 			// 循环使用预创建的token
 			tokenKey := tokens[i%1000]
 			err := tm.DelToken(tokenKey)
-			if err != wtoken.E_Success && err != wtoken.E_InvalidToken {
+			if err != wt.E_Success && err != wt.E_InvalidToken {
 				b.Errorf("DelToken failed: %v", err)
 			}
 			// 如果删除成功，重新创建一个token
-			if err == wtoken.E_Success {
-				newToken, addErr := tm.AddToken(uint((i%1000)+1), 1, "192.168.1.1")
-				if addErr == wtoken.E_Success {
-					tokens[i%1000] = newToken
+			if err == wt.E_Success {
+				newt, addErr := tm.AddToken(uint((i%1000)+1), 1, "192.168.1.1")
+				if addErr == wt.E_Success {
+					tokens[i%1000] = newt
 				}
 			}
 		}
@@ -116,7 +116,7 @@ func BenchmarkTokenOperations(b *testing.B) {
  * BenchmarkBatchOperations 基准测试批量操作
  */
 func BenchmarkBatchOperations(b *testing.B) {
-	tm := wtoken.GetInstance[any]()
+	tm := wt.GetInstance[any]()
 	if tm == nil {
 		b.Fatal("Failed to get token manager instance")
 	}
@@ -135,9 +135,9 @@ func BenchmarkBatchOperations(b *testing.B) {
 			b.StartTimer()
 
 			err := tm.BatchDeleteTokensByUserIDs(userIDs)
-				if err != wtoken.E_Success {
-					b.Errorf("BatchDeleteTokensByUserIDs failed: %v", err)
-				}
+			if err != wt.E_Success {
+				b.Errorf("BatchDeleteTokensByUserIDs failed: %v", err)
+			}
 		}
 	})
 
@@ -157,7 +157,7 @@ func BenchmarkBatchOperations(b *testing.B) {
 			b.StartTimer()
 
 			err := tm.BatchDeleteTokensByGroupIDs(groupIDs)
-			if err != wtoken.E_Success {
+			if err != wt.E_Success {
 				b.Errorf("BatchDeleteTokensByGroupIDs failed: %v", err)
 			}
 		}
@@ -200,13 +200,11 @@ func BenchmarkBatchOperations(b *testing.B) {
 	})
 }
 
-
-
 /**
  * BenchmarkConcurrentOperations 基准测试并发操作
  */
 func BenchmarkConcurrentOperations(b *testing.B) {
-	tm := wtoken.GetInstance[any]()
+	tm := wt.GetInstance[any]()
 	if tm == nil {
 		b.Fatal("Failed to get token manager instance")
 	}
@@ -220,7 +218,7 @@ func BenchmarkConcurrentOperations(b *testing.B) {
 		TokenExpire:        "3600",
 		AllowMultipleLogin: 1,
 	})
-	if err != wtoken.E_Success && err != wtoken.E_GroupExists {
+	if err != wt.E_Success && err != wt.E_GroupExists {
 		b.Fatalf("Failed to add group: %v", err)
 	}
 
@@ -231,7 +229,7 @@ func BenchmarkConcurrentOperations(b *testing.B) {
 				userID := uint(i%1000 + 1)
 				ip := fmt.Sprintf("192.168.%d.%d", (i%254)+1, (i%254)+1)
 				_, err := tm.AddToken(userID, 1, ip)
-				if err != wtoken.E_Success {
+				if err != wt.E_Success {
 					b.Errorf("ConcurrentAddToken failed: %v", err)
 				}
 				i++
@@ -262,7 +260,7 @@ func BenchmarkConcurrentOperations(b *testing.B) {
 		tokens := make([]string, 100)
 		for i := 0; i < 100; i++ {
 			tokenKey, err := tm.AddToken(uint(i+1), 1, "192.168.1.1")
-			if err == wtoken.E_Success {
+			if err == wt.E_Success {
 				tokens[i] = tokenKey
 			}
 		}
@@ -283,21 +281,21 @@ func BenchmarkConcurrentOperations(b *testing.B) {
 						}
 					}
 				case 2: // Auth
-				if len(tokens) > 0 {
-					tokenKey := tokens[i%len(tokens)]
-					if tokenKey != "" {
-						tm.Auth(tokenKey, "192.168.1.1", "/api/test")
+					if len(tokens) > 0 {
+						tokenKey := tokens[i%len(tokens)]
+						if tokenKey != "" {
+							tm.Auth(tokenKey, "192.168.1.1", "/api/test")
+						}
 					}
-				}
 				case 3: // DelToken (偶尔删除，但不要太频繁)
 					if i%20 == 0 && len(tokens) > 0 {
 						tokenKey := tokens[i%len(tokens)]
 						if tokenKey != "" {
 							tm.DelToken(tokenKey)
 							// 重新创建一个token
-							newToken, err := tm.AddToken(uint((i%100)+1), 1, "192.168.1.1")
-							if err == wtoken.E_Success {
-								tokens[i%len(tokens)] = newToken
+							newt, err := tm.AddToken(uint((i%100)+1), 1, "192.168.1.1")
+							if err == wt.E_Success {
+								tokens[i%len(tokens)] = newt
 							}
 						}
 					}
@@ -312,7 +310,7 @@ func BenchmarkConcurrentOperations(b *testing.B) {
  * BenchmarkSecurityOperations 基准测试安全操作
  */
 func BenchmarkSecurityOperations(b *testing.B) {
-	sm := wtoken.NewSecurityManager("test_password")
+	sm := wt.NewSecurityManager("test_password")
 
 	b.Run("EncryptToken", func(b *testing.B) {
 		testToken := "test_token_for_encryption_benchmark_" + strconv.Itoa(rand.Int())
@@ -353,7 +351,7 @@ func BenchmarkSecurityOperations(b *testing.B) {
 		testToken := "valid_token_format_test_" + strconv.Itoa(rand.Int())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = wtoken.ValidateTokenFormat(testToken)
+			_ = wt.ValidateTokenFormat(testToken)
 		}
 	})
 
@@ -361,7 +359,7 @@ func BenchmarkSecurityOperations(b *testing.B) {
 		testInput := "<script>alert('test');</script>" + strconv.Itoa(rand.Int())
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = wtoken.SanitizeInput(testInput)
+			_ = wt.SanitizeInput(testInput)
 		}
 	})
 }
@@ -370,17 +368,17 @@ func BenchmarkSecurityOperations(b *testing.B) {
  * BenchmarkConfigValidation 基准测试配置验证
  */
 func BenchmarkConfigValidation(b *testing.B) {
-	config := &wtoken.ConfigRaw{
+	config := &wt.ConfigRaw{
 		MaxTokens:      1000,
 		Delimiter:      "|",
 		TokenRenewTime: "24h",
-		Language:       wtoken.LangEnglish,
+		Language:       wt.LangEnglish,
 	}
 
 	b.Run("ValidateConfig", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			err := wtoken.ValidateConfig(config)
+			err := wt.ValidateConfig(config)
 			if err != nil {
 				b.Errorf("ValidateConfig failed: %v", err)
 			}
@@ -397,7 +395,7 @@ func BenchmarkConfigValidation(b *testing.B) {
 	b.Run("ValidateGroupRaw", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			err := wtoken.ValidateGroupRaw(groupRaw)
+			err := wt.ValidateGroupRaw(groupRaw)
 			if err != nil {
 				b.Errorf("ValidateGroupRaw failed: %v", err)
 			}
@@ -405,13 +403,11 @@ func BenchmarkConfigValidation(b *testing.B) {
 	})
 }
 
-
-
 /**
  * BenchmarkCompleteWorkflow 基准测试完整工作流程
  */
 func BenchmarkCompleteWorkflow(b *testing.B) {
-	tm := wtoken.GetInstance[string]()
+	tm := wt.GetInstance[string]()
 	if tm == nil {
 		b.Fatal("Failed to get token manager instance")
 	}
@@ -424,7 +420,7 @@ func BenchmarkCompleteWorkflow(b *testing.B) {
 
 			// 添加token
 			tokenKey, err := tm.AddToken(userID, 1, ip)
-			if err != wtoken.E_Success {
+			if err != wt.E_Success {
 				b.Errorf("AddToken failed: %v", err)
 				continue
 			}
@@ -438,25 +434,25 @@ func BenchmarkCompleteWorkflow(b *testing.B) {
 
 			// 检查token
 			valid := tm.Auth(tokenKey, ip, "/api/test")
-			if valid != wtoken.E_Success {
+			if valid != wt.E_Success {
 				b.Errorf("Auth failed for key: %s", tokenKey)
 			}
 
 			// 设置用户数据
 			err = tm.SetUserData(tokenKey, "benchmark_data_"+strconv.Itoa(i))
-			if err != wtoken.E_Success {
+			if err != wt.E_Success {
 				b.Errorf("SetUserData failed: %v", err)
 			}
 
 			// 获取用户数据
 			_, err = tm.GetUserData(tokenKey)
-			if err != wtoken.E_Success {
+			if err != wt.E_Success {
 				b.Errorf("GetUserData failed: %v", err)
 			}
 
 			// 删除token
 			err = tm.DelToken(tokenKey)
-			if err != wtoken.E_Success {
+			if err != wt.E_Success {
 				b.Errorf("DelToken failed: %v", err)
 			}
 		}

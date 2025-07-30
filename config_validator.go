@@ -1,10 +1,10 @@
-package wtoken
+package wt
 
 import (
 	"errors"
 	"strings"
 
-	"github.com/windf17/wtoken/models"
+	"github.com/windf17/wt/models"
 )
 
 /**
@@ -40,8 +40,6 @@ func ValidateConfig(config *ConfigRaw) error {
 	return nil
 }
 
-
-
 /**
  * validateMaxTokens 验证最大token数量
  * @param {int} maxTokens 最大token数量
@@ -69,8 +67,6 @@ func validateDelimiter(delimiter string) error {
 	}
 	return nil
 }
-
-
 
 // ValidateIntRange函数已在validation.go中定义，此处移除重复定义
 
@@ -126,8 +122,6 @@ func validateLanguage(lang Language) error {
 	}
 	return nil
 }
-
-
 
 /**
  * ValidateGroupRaw 验证用户组配置

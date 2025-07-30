@@ -1,4 +1,4 @@
-package wtoken
+package wt
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/windf17/wtoken/models"
+	"github.com/windf17/wt/models"
 )
 
 // Manager Token管理器结构体
@@ -21,7 +21,6 @@ type Manager[T any] struct {
 	mutex sync.RWMutex
 	// stats 统计信息
 	stats Stats
-
 
 	// errorHandler 错误处理器
 	errorHandler *ErrorHandler
@@ -99,12 +98,12 @@ func convertConfig(raw *ConfigRaw) *Config {
 		raw = DefaultConfigRaw
 	}
 	return &Config{
-		Language:          raw.Language,
-		MaxTokens:         raw.MaxTokens,
-		Delimiter:         raw.Delimiter,
-		TokenRenewTime:    parseTokenRenewTime(raw.TokenRenewTime),
-		MinTokenExpire:    raw.MinTokenExpire,
-		MaxTokenExpire:    raw.MaxTokenExpire,
+		Language:       raw.Language,
+		MaxTokens:      raw.MaxTokens,
+		Delimiter:      raw.Delimiter,
+		TokenRenewTime: parseTokenRenewTime(raw.TokenRenewTime),
+		MinTokenExpire: raw.MinTokenExpire,
+		MaxTokenExpire: raw.MaxTokenExpire,
 	}
 }
 
@@ -135,8 +134,6 @@ func parseTokenRenewTime(renewTime string) int64 {
 	}
 }
 
-
-
 // 锁操作方法
 func (tm *Manager[T]) lock() {
 	tm.mutex.Lock()
@@ -153,11 +150,6 @@ func (tm *Manager[T]) rLock() {
 func (tm *Manager[T]) rUnlock() {
 	tm.mutex.RUnlock()
 }
-
-
-
-
-
 
 // SetErrorMessages 设置全局错误消息
 func SetErrorMessages(errorMessages map[Language]map[ErrorCode]string) {
@@ -183,8 +175,6 @@ func (tm *Manager[T]) EnableLogging(enabled bool) {
 	// 简化实现，保持接口兼容性
 	// 实际的日志控制通过LogPath和LogLevel配置
 }
-
-
 
 /**
  * SetLogFile 设置日志文件路径
@@ -265,14 +255,6 @@ func (tm *Manager[T]) GetUserData(key string) (T, ErrorCode) {
 
 	return userData, E_Success
 }
-
-
-
-
-
-
-
-
 
 /**
  * Close 关闭Token管理器，清理资源

@@ -3,8 +3,8 @@ package test
 import (
 	"testing"
 
-	"github.com/windf17/wtoken"
-	"github.com/windf17/wtoken/models"
+	"github.com/windf17/wt"
+	"github.com/windf17/wt/models"
 )
 
 /**
@@ -12,12 +12,12 @@ import (
  */
 func TestDebugPermission(t *testing.T) {
 	// 初始化配置
-	config := &wtoken.ConfigRaw{
+	config := &wt.ConfigRaw{
 
 		MaxTokens:      10,
 		Delimiter:      ",",
 		TokenRenewTime: "30m",
-		Language:       wtoken.LangChinese,
+		Language:       wt.LangChinese,
 	}
 
 	groups := []models.GroupRaw{
@@ -32,7 +32,7 @@ func TestDebugPermission(t *testing.T) {
 	}
 
 	// 初始化token管理器
-	tm := wtoken.InitTM[map[string]any](config, groups, nil)
+	tm := wt.InitTM[map[string]any](config, groups, nil)
 	if tm == nil {
 		t.Fatalf("Failed to initialize token manager")
 	}
@@ -40,7 +40,7 @@ func TestDebugPermission(t *testing.T) {
 
 	// 创建用户token
 	userToken, errCode := tm.AddToken(2, 2, "192.168.1.102")
-	if errCode != wtoken.E_Success {
+	if errCode != wt.E_Success {
 		t.Errorf("Failed to add user token: %v", errCode)
 	}
 
@@ -48,7 +48,7 @@ func TestDebugPermission(t *testing.T) {
 
 	// 获取用户组信息
 	group, errCode := tm.GetGroup(2)
-	if errCode != wtoken.E_Success {
+	if errCode != wt.E_Success {
 		t.Errorf("Failed to get group: %v", errCode)
 		return
 	}
@@ -61,12 +61,12 @@ func TestDebugPermission(t *testing.T) {
 	// 测试API权限
 	testCases := []struct {
 		api      string
-		expected wtoken.ErrorCode
+		expected wt.ErrorCode
 		desc     string
 	}{
-		{"/api/user/profile", wtoken.E_Success, "exact match /api/user/profile"},
-		{"/api/user/admin", wtoken.E_Unauthorized, "denied /api/user/admin"},
-		{"/api/admin", wtoken.E_Unauthorized, "not allowed /api/admin"},
+		{"/api/user/profile", wt.E_Success, "exact match /api/user/profile"},
+		{"/api/user/admin", wt.E_Unauthorized, "denied /api/user/admin"},
+		{"/api/admin", wt.E_Unauthorized, "not allowed /api/admin"},
 	}
 
 	for _, tc := range testCases {

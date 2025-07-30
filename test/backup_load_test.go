@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	wtoken "github.com/windf17/wtoken"
-	"github.com/windf17/wtoken/models"
+	"github.com/windf17/wt"
+	"github.com/windf17/wt/models"
 )
 
 /**
@@ -68,7 +68,7 @@ func TestBackupFileLoading(t *testing.T) {
 
 	// 测试1: 配置了备份文件路径时应该加载数据
 	t.Run("LoadFromBackupFile", func(t *testing.T) {
-		config := &wtoken.ConfigRaw{
+		config := &wt.ConfigRaw{
 			Language:       "zh",
 			MaxTokens:      1000,
 			Delimiter:      "|",
@@ -86,12 +86,12 @@ func TestBackupFileLoading(t *testing.T) {
 			},
 		}
 
-		tm := wtoken.InitTM[string](config, groups, nil)
+		tm := wt.InitTM[string](config, groups, nil)
 		defer tm.Close()
 
 		// 验证tokens是否正确加载
 		token1, code := tm.GetToken("test_token_1")
-		if code == wtoken.E_Success {
+		if code == wt.E_Success {
 			assert.NotNil(t, token1)
 			assert.Equal(t, uint(1), token1.UserID)
 			assert.Equal(t, uint(1), token1.GroupID)
@@ -101,7 +101,7 @@ func TestBackupFileLoading(t *testing.T) {
 
 		// 验证groups是否正确加载
 		group, code := tm.GetGroup(1)
-		if code == wtoken.E_Success {
+		if code == wt.E_Success {
 			assert.NotNil(t, group)
 			assert.Equal(t, "test_group", group.Name)
 		}
@@ -109,8 +109,8 @@ func TestBackupFileLoading(t *testing.T) {
 
 	// 测试2: 未配置备份文件路径时不应该加载数据
 	t.Run("NoBackupFileConfigured", func(t *testing.T) {
-		config := &wtoken.ConfigRaw{
-			Language:       wtoken.LangChinese,
+		config := &wt.ConfigRaw{
+			Language:       wt.LangChinese,
 			MaxTokens:      1000,
 			Delimiter:      "|",
 			TokenRenewTime: "24h",
@@ -127,25 +127,25 @@ func TestBackupFileLoading(t *testing.T) {
 			},
 		}
 
-		tm := wtoken.InitTM[string](config, groups, nil)
+		tm := wt.InitTM[string](config, groups, nil)
 		defer tm.Close()
 
 		// 验证没有加载任何数据
 		_, code := tm.GetToken("test_token_1")
-		assert.Equal(t, wtoken.E_InvalidToken, code)
+		assert.Equal(t, wt.E_InvalidToken, code)
 
 		_, code = tm.GetToken("test_token_2")
-		assert.Equal(t, wtoken.E_InvalidToken, code)
+		assert.Equal(t, wt.E_InvalidToken, code)
 
 		// 验证用户组配置仍然有效（从groups参数加载）
 		group, code := tm.GetGroup(1)
-		assert.Equal(t, wtoken.E_Success, code)
+		assert.Equal(t, wt.E_Success, code)
 		assert.NotNil(t, group)
 	})
 
 	// 测试3: 备份文件不存在时应该正常启动
 	t.Run("BackupFileNotExists", func(t *testing.T) { // 测试不存在的备份文件
-		config := &wtoken.ConfigRaw{
+		config := &wt.ConfigRaw{
 			Language:       "zh",
 			MaxTokens:      1000,
 			Delimiter:      "|",
@@ -163,20 +163,20 @@ func TestBackupFileLoading(t *testing.T) {
 			},
 		}
 
-		tm := wtoken.InitTM[string](config, groups, nil)
+		tm := wt.InitTM[string](config, groups, nil)
 		defer tm.Close()
 
 		// 验证没有加载任何数据，但管理器正常工作
 		_, code := tm.GetToken("test_token_1")
-		assert.Equal(t, wtoken.E_InvalidToken, code)
+		assert.Equal(t, wt.E_InvalidToken, code)
 
 		// 验证可以正常添加新token
-		newToken, code := tm.AddToken(1, 1, "192.168.1.100")
-		assert.Equal(t, wtoken.E_Success, code)
-		assert.NotEmpty(t, newToken)
+		newt, code := tm.AddToken(1, 1, "192.168.1.100")
+		assert.Equal(t, wt.E_Success, code)
+		assert.NotEmpty(t, newt)
 
-		token, code := tm.GetToken(newToken)
-		assert.Equal(t, wtoken.E_Success, code)
+		token, code := tm.GetToken(newt)
+		assert.Equal(t, wt.E_Success, code)
 		assert.NotNil(t, token)
 		assert.Equal(t, uint(1), token.UserID)
 	})
@@ -193,7 +193,7 @@ func TestBackupFileLoadingWithInvalidData(t *testing.T) {
 	err := os.WriteFile(backupFile, []byte("invalid json data"), 0644)
 	assert.NoError(t, err)
 
-	config := &wtoken.ConfigRaw{
+	config := &wt.ConfigRaw{
 		Language:       "zh",
 		MaxTokens:      1000,
 		Delimiter:      "|",
@@ -212,21 +212,21 @@ func TestBackupFileLoadingWithInvalidData(t *testing.T) {
 	}
 
 	// 应该能正常启动，但不会加载任何数据
-	tm := wtoken.InitTM[string](config, groups, nil)
+	tm := wt.InitTM[string](config, groups, nil)
 	defer tm.Close()
 
 	// 验证没有加载任何数据
 	_, code := tm.GetToken("any_token")
-	assert.Equal(t, wtoken.E_InvalidToken, code)
+	assert.Equal(t, wt.E_InvalidToken, code)
 
 	// 验证管理器仍然可以正常工作
-	newToken, code := tm.AddToken(1, 1, "192.168.1.100")
-	assert.Equal(t, wtoken.E_Success, code)
-	assert.NotEmpty(t, newToken)
+	newt, code := tm.AddToken(1, 1, "192.168.1.100")
+	assert.Equal(t, wt.E_Success, code)
+	assert.NotEmpty(t, newt)
 
 	// 验证新添加的token可以正常获取
-	token, code := tm.GetToken(newToken)
-	assert.Equal(t, wtoken.E_Success, code)
+	token, code := tm.GetToken(newt)
+	assert.Equal(t, wt.E_Success, code)
 	assert.NotNil(t, token)
 	assert.Equal(t, uint(1), token.UserID)
 }

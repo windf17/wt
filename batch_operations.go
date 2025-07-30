@@ -1,4 +1,4 @@
-package wtoken
+package wt
 
 import (
 	"time"
@@ -62,7 +62,6 @@ func (tm *Manager[T]) BatchDeleteTokensByUserIDs(userIDs []uint) ErrorCode {
 		tm.stats.TotalTokens -= expiredDeleted
 		tm.stats.LastUpdateTime = time.Now()
 	}
-
 
 	return E_Success
 }
@@ -133,7 +132,6 @@ func (tm *Manager[T]) BatchDeleteTokensByGroupIDs(groupIDs []uint) ErrorCode {
 		tm.stats.LastUpdateTime = time.Now()
 	}
 
-
 	return E_Success
 }
 
@@ -167,7 +165,6 @@ func (tm *Manager[T]) BatchDeleteExpiredTokens() ErrorCode {
 		tm.stats.TotalTokens -= deleteCount
 		tm.stats.LastUpdateTime = time.Now()
 	}
-
 
 	return E_Success
 }

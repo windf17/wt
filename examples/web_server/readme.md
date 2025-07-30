@@ -1,15 +1,15 @@
-# WToken Web服务器示例
+# wt Web 服务器示例
 
-这是一个完整的WToken Web服务器示例，演示了如何在实际Web应用中集成WToken进行用户认证和权限管理。
+这是一个完整的 wt Web 服务器示例，演示了如何在实际 Web 应用中集成 wt 进行用户认证和权限管理。
 
 ## 📋 示例概述
 
 本示例实现了一个完整的用户权限管理系统，包括：
 
-- **用户认证**: 登录/登出功能
-- **权限控制**: 基于用户组的API访问控制
-- **安全防护**: Token验证、IP绑定、权限检查
-- **RESTful API**: 标准的REST API设计
+-   **用户认证**: 登录/登出功能
+-   **权限控制**: 基于用户组的 API 访问控制
+-   **安全防护**: Token 验证、IP 绑定、权限检查
+-   **RESTful API**: 标准的 REST API 设计
 
 ## 🏗️ 系统架构
 
@@ -21,7 +21,7 @@
                                 │
                                 ▼
                        ┌─────────────────┐
-                       │  WToken Manager │
+                       │  wt Manager │
                        │  (Token管理器)   │
                        └─────────────────┘
 ```
@@ -29,32 +29,36 @@
 ## 👥 用户组配置
 
 ### 管理员组 (ID=1)
-- **权限**: 不允许重复登录
-- **API访问**: 拥有管理员专属API权限
-- **安全级别**: 高
+
+-   **权限**: 不允许重复登录
+-   **API 访问**: 拥有管理员专属 API 权限
+-   **安全级别**: 高
 
 ### 普通用户组 (ID=2)
-- **权限**: 允许重复登录
-- **API访问**: 拥有普通用户专属API权限
-- **安全级别**: 标准
+
+-   **权限**: 允许重复登录
+-   **API 访问**: 拥有普通用户专属 API 权限
+-   **安全级别**: 标准
 
 ## 👤 测试用户账号
 
 ### 管理员用户
-- `admin1` / `admin123`
-- `admin2` / `admin123`
+
+-   `admin1` / `admin123`
+-   `admin2` / `admin123`
 
 ### 普通用户
-- `user1` / `user123` 到 `user100` / `user123`
 
-## 🔗 API端点
+-   `user1` / `user123` 到 `user100` / `user123`
 
-| 方法 | 端点 | 描述 | 权限要求 |
-|------|------|------|----------|
-| POST | `/api/login` | 用户登录 | 无 |
-| POST | `/api/logout` | 用户登出 | 需要Token |
-| GET | `/api/admin/dashboard` | 管理员仪表板 | 管理员权限 |
-| GET | `/api/user/profile` | 用户个人资料 | 普通用户权限 |
+## 🔗 API 端点
+
+| 方法 | 端点                   | 描述         | 权限要求     |
+| ---- | ---------------------- | ------------ | ------------ |
+| POST | `/api/login`           | 用户登录     | 无           |
+| POST | `/api/logout`          | 用户登出     | 需要 Token   |
+| GET  | `/api/admin/dashboard` | 管理员仪表板 | 管理员权限   |
+| GET  | `/api/user/profile`    | 用户个人资料 | 普通用户权限 |
 
 ## 🚀 快速开始
 
@@ -70,9 +74,10 @@ go run main.go
 
 服务器将在 `http://localhost:8081` 启动
 
-### 2. 测试API
+### 2. 测试 API
 
 #### 管理员登录
+
 ```bash
 curl -X POST http://localhost:8081/api/login \
   -H 'Content-Type: application/json' \
@@ -80,43 +85,48 @@ curl -X POST http://localhost:8081/api/login \
 ```
 
 **响应示例**:
+
 ```json
 {
-  "code": 200,
-  "message": "登录成功",
-  "data": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expires_at": "2024-12-20T10:30:00Z",
-    "user_info": {
-      "user_id": 1,
-      "username": "admin1",
-      "email": "admin1@example.com",
-      "role": "管理员"
+    "code": 200,
+    "message": "登录成功",
+    "data": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "expires_at": "2024-12-20T10:30:00Z",
+        "user_info": {
+            "user_id": 1,
+            "username": "admin1",
+            "email": "admin1@example.com",
+            "role": "管理员"
+        }
     }
-  }
 }
 ```
 
 #### 普通用户登录
+
 ```bash
 curl -X POST http://localhost:8081/api/login \
   -H 'Content-Type: application/json' \
   -d '{"username":"user1","password":"user123"}'
 ```
 
-#### 访问管理员API
+#### 访问管理员 API
+
 ```bash
 curl -X GET http://localhost:8081/api/admin/dashboard \
   -H 'Authorization: Bearer YOUR_ADMIN_TOKEN'
 ```
 
-#### 访问用户API
+#### 访问用户 API
+
 ```bash
 curl -X GET http://localhost:8081/api/user/profile \
   -H 'Authorization: Bearer YOUR_USER_TOKEN'
 ```
 
 #### 用户登出
+
 ```bash
 curl -X POST http://localhost:8081/api/logout \
   -H 'Authorization: Bearer YOUR_TOKEN'
@@ -124,20 +134,23 @@ curl -X POST http://localhost:8081/api/logout \
 
 ## 🔒 安全特性
 
-### 1. Token验证
-- **格式验证**: 严格的Token格式检查
-- **过期检查**: 自动检查Token是否过期
-- **IP绑定**: Token与客户端IP绑定，防止盗用
+### 1. Token 验证
+
+-   **格式验证**: 严格的 Token 格式检查
+-   **过期检查**: 自动检查 Token 是否过期
+-   **IP 绑定**: Token 与客户端 IP 绑定，防止盗用
 
 ### 2. 权限控制
-- **角色分离**: 管理员和普通用户权限分离
-- **API级权限**: 细粒度的API访问控制
-- **自动拒绝**: 未授权访问自动拒绝
+
+-   **角色分离**: 管理员和普通用户权限分离
+-   **API 级权限**: 细粒度的 API 访问控制
+-   **自动拒绝**: 未授权访问自动拒绝
 
 ### 3. 并发安全
-- **线程安全**: 支持高并发访问
-- **死锁预防**: 精心设计的锁机制
-- **性能优化**: 读写锁分离
+
+-   **线程安全**: 支持高并发访问
+-   **死锁预防**: 精心设计的锁机制
+-   **性能优化**: 读写锁分离
 
 ## 📊 性能测试
 
@@ -153,33 +166,35 @@ go run pressure_testing.go
 
 ### 测试结果
 
-经过1000并发用户测试验证：
+经过 1000 并发用户测试验证：
 
-- ✅ **登录成功率**: 100% (1000/1000)
-- ✅ **登出成功率**: 100% (1000/1000)
-- ✅ **API请求成功率**: 100% (授权请求)
-- ✅ **权限控制**: 100%正确拒绝未授权请求
-- ⚡ **平均响应时间**: <10ms
-- 🚀 **吞吐量**: 509.68 请求/秒
+-   ✅ **登录成功率**: 100% (1000/1000)
+-   ✅ **登出成功率**: 100% (1000/1000)
+-   ✅ **API 请求成功率**: 100% (授权请求)
+-   ✅ **权限控制**: 100%正确拒绝未授权请求
+-   ⚡ **平均响应时间**: <10ms
+-   🚀 **吞吐量**: 509.68 请求/秒
 
 ## 🧪 测试用例
 
 ### 功能测试
 
 1. **用户认证测试**
-   - 正确用户名密码登录
-   - 错误用户名密码登录
-   - Token过期处理
+
+    - 正确用户名密码登录
+    - 错误用户名密码登录
+    - Token 过期处理
 
 2. **权限控制测试**
-   - 管理员访问管理员API
-   - 普通用户访问用户API
-   - 跨权限访问拒绝
+
+    - 管理员访问管理员 API
+    - 普通用户访问用户 API
+    - 跨权限访问拒绝
 
 3. **安全测试**
-   - Token盗用检测
-   - IP验证
-   - 并发登录控制
+    - Token 盗用检测
+    - IP 验证
+    - 并发登录控制
 
 ### 压力测试
 
@@ -205,21 +220,21 @@ examples/web_server/
 
 ## 🔧 配置说明
 
-### Token管理器配置
+### Token 管理器配置
 
 ```go
-config := &wtoken.ConfigRaw{
+config := &wt.ConfigRaw{
     MaxTokens:      10000,           // 最大Token数量
     Delimiter:      ",",             // API权限分隔符
     TokenRenewTime: "24h",           // Token续期时间
-    Language:       wtoken.Chinese,  // 错误信息语言
+    Language:       wt.Chinese,  // 错误信息语言
 }
 ```
 
 ### 用户组配置
 
 ```go
-groups := []wtoken.GroupRaw{
+groups := []wt.GroupRaw{
     {
         ID:                 1,
         Name:               "管理员",
@@ -241,20 +256,20 @@ groups := []wtoken.GroupRaw{
 
 ### 常见错误码
 
-| 错误码 | HTTP状态码 | 描述 | 解决方案 |
-|--------|------------|------|----------|
-| 2001 | 401 | 未授权访问 | 检查Token是否有效 |
-| 2002 | 403 | 权限不足 | 检查用户权限 |
-| 2101 | 401 | 无效Token | 重新登录获取Token |
-| 2102 | 401 | Token过期 | 重新登录 |
+| 错误码 | HTTP 状态码 | 描述       | 解决方案            |
+| ------ | ----------- | ---------- | ------------------- |
+| 2001   | 401         | 未授权访问 | 检查 Token 是否有效 |
+| 2002   | 403         | 权限不足   | 检查用户权限        |
+| 2101   | 401         | 无效 Token | 重新登录获取 Token  |
+| 2102   | 401         | Token 过期 | 重新登录            |
 
 ### 错误响应格式
 
 ```json
 {
-  "code": 401,
-  "message": "认证失败: 无效令牌",
-  "data": null
+    "code": 401,
+    "message": "认证失败: 无效令牌",
+    "data": null
 }
 ```
 
@@ -262,9 +277,9 @@ groups := []wtoken.GroupRaw{
 
 ### 1. 启用详细日志
 
-服务器启动时会显示详细的初始化信息和API端点。
+服务器启动时会显示详细的初始化信息和 API 端点。
 
-### 2. 检查Token状态
+### 2. 检查 Token 状态
 
 ```bash
 # 使用无效Token测试
@@ -275,43 +290,44 @@ curl -X GET http://localhost:8081/api/user/profile \
 ### 3. 监控服务器日志
 
 服务器会输出详细的请求处理日志，包括：
-- 客户端IP
-- 访问路径
-- Token验证结果
-- 权限检查结果
+
+-   客户端 IP
+-   访问路径
+-   Token 验证结果
+-   权限检查结果
 
 ## 🎯 最佳实践
 
 ### 1. 安全建议
 
-- 使用HTTPS传输Token
-- 定期轮换Token
-- 实施IP白名单
-- 监控异常访问
+-   使用 HTTPS 传输 Token
+-   定期轮换 Token
+-   实施 IP 白名单
+-   监控异常访问
 
 ### 2. 性能优化
 
-- 合理设置Token过期时间
-- 使用连接池
-- 启用缓存
-- 监控系统指标
+-   合理设置 Token 过期时间
+-   使用连接池
+-   启用缓存
+-   监控系统指标
 
 ### 3. 错误处理
 
-- 统一错误响应格式
-- 详细的错误日志
-- 用户友好的错误信息
-- 异常情况的降级处理
+-   统一错误响应格式
+-   详细的错误日志
+-   用户友好的错误信息
+-   异常情况的降级处理
 
 ## 📈 扩展功能
 
 ### 可扩展的功能点
 
 1. **数据库集成**: 用户信息持久化存储
-2. **缓存优化**: Redis缓存Token
-3. **监控告警**: 集成Prometheus监控
+2. **缓存优化**: Redis 缓存 Token
+3. **监控告警**: 集成 Prometheus 监控
 4. **负载均衡**: 多实例部署
-5. **API网关**: 集成到API网关
+5. **API 网关**: 集成到 API 网关
 
 ### 集成示例
 
@@ -334,7 +350,7 @@ func initMetrics() {
 
 ## 🤝 贡献
 
-欢迎提交Issue和Pull Request来改进这个示例！
+欢迎提交 Issue 和 Pull Request 来改进这个示例！
 
 ## 📞 支持
 
@@ -342,8 +358,8 @@ func initMetrics() {
 
 1. 查看本文档的常见问题
 2. 检查服务器日志
-3. 提交Issue到项目仓库
+3. 提交 Issue 到项目仓库
 
 ---
 
-**这个示例展示了WToken在实际Web应用中的强大功能和易用性！** 🚀
+**这个示例展示了 wt 在实际 Web 应用中的强大功能和易用性！** 🚀

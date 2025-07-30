@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/windf17/wtoken"
-	"github.com/windf17/wtoken/models"
-	"github.com/windf17/wtoken/utility"
+	"github.com/windf17/wt"
+	"github.com/windf17/wt/models"
+	"github.com/windf17/wt/utility"
 )
 
 /**
@@ -83,7 +83,7 @@ func TestConvGroupDebug(t *testing.T) {
 		t.Logf("  AllowMultipleLogin: %d", raw.AllowMultipleLogin)
 
 		delimiter := ","
-		convertedGroup := wtoken.ConvGroup(raw, delimiter)
+		convertedGroup := wt.ConvGroup(raw, delimiter)
 
 		t.Logf("\nOutput Group:")
 		t.Logf("  Name: %s", convertedGroup.Name)
@@ -123,7 +123,7 @@ func TestConvGroupDebug(t *testing.T) {
 			t.Logf("\n=== Processing Group %d ===", raw.ID)
 			t.Logf("Input: AllowedAPIs='%s', DeniedAPIs='%s'", raw.AllowedAPIs, raw.DeniedAPIs)
 
-			convertedGroup := wtoken.ConvGroup(raw, delimiter)
+			convertedGroup := wt.ConvGroup(raw, delimiter)
 
 			t.Logf("Output: %d ApiRules", len(convertedGroup.ApiRules))
 			for i, rule := range convertedGroup.ApiRules {

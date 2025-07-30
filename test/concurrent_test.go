@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/windf17/wtoken"
-	"github.com/windf17/wtoken/models"
+	"github.com/windf17/wt"
+	"github.com/windf17/wt/models"
 )
 
 /**
@@ -15,11 +15,11 @@ import (
  */
 func TestConcurrentTokenOperations(t *testing.T) {
 	// 初始化测试配置
-	config := &wtoken.ConfigRaw{
-		MaxTokens:     100,
-		Delimiter:       ",",
-		TokenRenewTime:  "1h",
-		Language:        wtoken.LangChinese,
+	config := &wt.ConfigRaw{
+		MaxTokens:      100,
+		Delimiter:      ",",
+		TokenRenewTime: "1h",
+		Language:       wt.LangChinese,
 	}
 
 	groups := []models.GroupRaw{
@@ -34,7 +34,7 @@ func TestConcurrentTokenOperations(t *testing.T) {
 	}
 
 	// 初始化token管理器
-	tm := wtoken.InitTM[string](config, groups, nil)
+	tm := wt.InitTM[string](config, groups, nil)
 
 	// 并发测试参数
 	const numGoroutines = 50
@@ -51,14 +51,14 @@ func TestConcurrentTokenOperations(t *testing.T) {
 			for j := 0; j < operationsPerGoroutine; j++ {
 				userID := uint(goroutineID*operationsPerGoroutine + j + 1)
 				token, errCode := tm.AddToken(userID, 1, "192.168.1.1")
-				if errCode != wtoken.E_Success {
+				if errCode != wt.E_Success {
 					errorChan <- errCode
 					return
 				}
-				
+
 				// 立即尝试获取token
 				_, errCode = tm.GetToken(token)
-				if errCode != wtoken.E_Success {
+				if errCode != wt.E_Success {
 					errorChan <- errCode
 					return
 				}
@@ -82,11 +82,11 @@ func TestConcurrentTokenOperations(t *testing.T) {
  */
 func TestConcurrentTokenAccess(t *testing.T) {
 	// 初始化测试配置
-	config := &wtoken.ConfigRaw{
-		MaxTokens:     10,
-		Delimiter:       ",",
-		TokenRenewTime:  "1h",
-		Language:        wtoken.LangChinese,
+	config := &wt.ConfigRaw{
+		MaxTokens:      10,
+		Delimiter:      ",",
+		TokenRenewTime: "1h",
+		Language:       wt.LangChinese,
 	}
 
 	groups := []models.GroupRaw{
@@ -100,13 +100,13 @@ func TestConcurrentTokenAccess(t *testing.T) {
 		},
 	}
 
-	tm := wtoken.InitTM[string](config, groups, nil)
+	tm := wt.InitTM[string](config, groups, nil)
 
 	// 预先创建一些token
 	tokens := make([]string, 5)
 	for i := 0; i < 5; i++ {
 		token, errCode := tm.AddToken(uint(i+1), 1, "192.168.1.1")
-		if errCode != wtoken.E_Success {
+		if errCode != wt.E_Success {
 			t.Fatalf("Failed to create test token: %v", errCode)
 		}
 		tokens[i] = token
@@ -124,7 +124,7 @@ func TestConcurrentTokenAccess(t *testing.T) {
 			for j := 0; j < 100; j++ {
 				tokenIndex := j % len(tokens)
 				_, errCode := tm.GetToken(tokens[tokenIndex])
-				if errCode != wtoken.E_Success && errCode != wtoken.E_TokenExpired {
+				if errCode != wt.E_Success && errCode != wt.E_TokenExpired {
 					errorChan <- errCode
 					return
 				}
@@ -148,11 +148,11 @@ func TestConcurrentTokenAccess(t *testing.T) {
  * TestConcurrentTokenDeletion 测试并发token删除
  */
 func TestConcurrentTokenDeletion(t *testing.T) {
-	config := &wtoken.ConfigRaw{
-		MaxTokens:     1000,
-		Delimiter:       ",",
-		TokenRenewTime:  "1h",
-		Language:        wtoken.LangChinese,
+	config := &wt.ConfigRaw{
+		MaxTokens:      1000,
+		Delimiter:      ",",
+		TokenRenewTime: "1h",
+		Language:       wt.LangChinese,
 	}
 
 	groups := []models.GroupRaw{
@@ -166,13 +166,13 @@ func TestConcurrentTokenDeletion(t *testing.T) {
 		},
 	}
 
-	tm := wtoken.InitTM[string](config, groups, nil)
+	tm := wt.InitTM[string](config, groups, nil)
 
 	// 创建大量token
 	tokens := make([]string, 100)
 	for i := 0; i < 100; i++ {
 		token, errCode := tm.AddToken(uint(i+1), 1, "192.168.1.1")
-		if errCode != wtoken.E_Success {
+		if errCode != wt.E_Success {
 			t.Fatalf("Failed to create test token: %v", errCode)
 		}
 		tokens[i] = token
@@ -191,7 +191,7 @@ func TestConcurrentTokenDeletion(t *testing.T) {
 			end := start + 10
 			for j := start; j < end && j < len(tokens); j++ {
 				errCode := tm.DelToken(tokens[j])
-				if errCode != wtoken.E_Success && errCode != wtoken.E_InvalidToken {
+				if errCode != wt.E_Success && errCode != wt.E_InvalidToken {
 					errorChan <- errCode
 					return
 				}

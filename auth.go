@@ -1,10 +1,10 @@
-package wtoken
+package wt
 
 import (
 	"strings"
 	"time"
 
-	"github.com/windf17/wtoken/utility"
+	"github.com/windf17/wt/utility"
 )
 
 /**
@@ -117,7 +117,7 @@ func (tm *Manager[T]) Auth(key string, clientIp string, api string) ErrorCode {
 func (tm *Manager[T]) BatchAuth(key string, clientIp string, apis []string) []bool {
 	// 初始化结果数组
 	results := make([]bool, len(apis))
-	
+
 	// 对每个API进行权限检查
 	for i, api := range apis {
 		// 调用单个API的权限检查方法
@@ -125,6 +125,6 @@ func (tm *Manager[T]) BatchAuth(key string, clientIp string, apis []string) []bo
 		// 只有返回E_Success时才表示有权限
 		results[i] = (authResult == E_Success)
 	}
-	
+
 	return results
 }

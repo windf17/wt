@@ -1,4 +1,4 @@
-package wtoken
+package wt
 
 // Config 定义了Token管理器的配置
 type Config struct {
@@ -14,7 +14,6 @@ type Config struct {
 	MinTokenExpire int
 	// MaxTokenExpire：最大token过期时间（秒），默认1年
 	MaxTokenExpire int
-
 }
 
 type ConfigRaw struct {
@@ -30,7 +29,6 @@ type ConfigRaw struct {
 	MinTokenExpire int `json:"minTokenExpire"`
 	// MaxTokenExpire：最大token过期时间（秒），默认30天
 	MaxTokenExpire int `json:"maxTokenExpire"`
-
 }
 
 var DefaultConfigRaw = &ConfigRaw{
@@ -38,7 +36,7 @@ var DefaultConfigRaw = &ConfigRaw{
 	MaxTokens:      DEFAULT_MAX_TOKENS,
 	Delimiter:      DEFAULT_DELIMITER,
 	TokenRenewTime: DEFAULT_TOKEN_RENEW_TIME,
-	MinTokenExpire: 60,                   // 60秒
-	MaxTokenExpire: 2592000,             // 30天
+	MinTokenExpire: 60,      // 60秒
+	MaxTokenExpire: 2592000, // 30天
 
 }

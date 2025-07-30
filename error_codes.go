@@ -1,4 +1,4 @@
-package wtoken
+package wt
 
 type ErrorCode int
 
@@ -18,13 +18,13 @@ const E_Success ErrorCode = 0 // 成功
 /******************** 基础错误 (1000-1999) ********************/
 const (
 	// 系统级错误
-	E_Internal       ErrorCode = 1001 // 系统内部错误
-	E_System         ErrorCode = 1002 // 系统错误
-	E_SystemError    ErrorCode = 1003 // 系统错误（通用）
-	E_ConfigInvalid  ErrorCode = 1101 // 配置无效
+	E_Internal      ErrorCode = 1001 // 系统内部错误
+	E_System        ErrorCode = 1002 // 系统错误
+	E_SystemError   ErrorCode = 1003 // 系统错误（通用）
+	E_ConfigInvalid ErrorCode = 1101 // 配置无效
 
-	E_InvalidParams  ErrorCode = 1301 // 无效参数
-	E_APINotFound    ErrorCode = 1401 // 接口不存在
+	E_InvalidParams ErrorCode = 1301 // 无效参数
+	E_APINotFound   ErrorCode = 1401 // 接口不存在
 )
 
 /******************** 认证鉴权 (2000-2999) ********************/

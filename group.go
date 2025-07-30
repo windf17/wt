@@ -1,11 +1,11 @@
-package wtoken
+package wt
 
 import (
 	"sort"
 	"strings"
 
-	"github.com/windf17/wtoken/models"
-	"github.com/windf17/wtoken/utility"
+	"github.com/windf17/wt/models"
+	"github.com/windf17/wt/utility"
 )
 
 // GetGroup 获取并验证用户组配置
@@ -40,12 +40,12 @@ func (tm *Manager[T]) DelGroup(groupID uint) ErrorCode {
 	}
 	tm.lock()
 	defer tm.unlock()
-	
+
 	// 检查用户组是否存在
 	if _, exists := tm.groups[groupID]; !exists {
 		return (E_GroupNotFound)
 	}
-	
+
 	// 删除该用户组的所有token
 	deleteCount := 0
 	for token, ut := range tm.tokens {
@@ -54,14 +54,13 @@ func (tm *Manager[T]) DelGroup(groupID uint) ErrorCode {
 			deleteCount++
 		}
 	}
-	
+
 	// 删除用户组本身
 	delete(tm.groups, groupID)
-	
+
 	if deleteCount > 0 {
 		tm.updateStatsCount(-deleteCount, true)
 	}
-
 
 	return E_Success
 }
@@ -109,11 +108,8 @@ func (tm *Manager[T]) UpdateAllGroup(groups []models.GroupRaw) ErrorCode {
 		tm.groups[raw.ID] = group
 	}
 
-
 	return E_Success
 }
-
-
 
 /**
  * ConvGroup 将GroupRaw转换为Group
@@ -135,7 +131,7 @@ func ConvGroup(raw models.GroupRaw, delimiter string) *models.Group {
 	// 处理 TokenExpire
 	g.ExpireSeconds = utility.ParseDuration(raw.TokenExpire)
 	rules := []models.ApiRule{}
-	
+
 	// 处理拒绝的规则
 	for _, api := range strings.Split(raw.DeniedAPIs, delimiter) {
 		api = strings.TrimSpace(api)
@@ -149,7 +145,7 @@ func ConvGroup(raw models.GroupRaw, delimiter string) *models.Group {
 			}
 		}
 	}
-	
+
 	// 处理允许的规则
 	for _, api := range strings.Split(raw.AllowedAPIs, delimiter) {
 		api = strings.TrimSpace(api)
@@ -163,12 +159,12 @@ func ConvGroup(raw models.GroupRaw, delimiter string) *models.Group {
 			}
 		}
 	}
-	
+
 	// 对规则进行复杂排序
 	sort.Slice(rules, func(i, j int) bool {
 		return compareApiRules(rules[i].Path, rules[j].Path)
 	})
-	
+
 	g.ApiRules = rules
 	return &g
 }
@@ -189,12 +185,12 @@ func compareApiRules(pathA, pathB []string) bool {
 	if len(pathA) != len(pathB) {
 		return len(pathA) > len(pathB)
 	}
-	
+
 	// 2. 长度相同时，逐个比较每个路径段
 	for i := 0; i < len(pathA); i++ {
 		segmentA := pathA[i]
 		segmentB := pathB[i]
-		
+
 		// 特例处理：*号优先级最低
 		if segmentA == "*" && segmentB != "*" {
 			return false // A是*，B不是*，B优先级更高
@@ -205,19 +201,18 @@ func compareApiRules(pathA, pathB []string) bool {
 		if segmentA == "*" && segmentB == "*" {
 			continue // 都是*，继续比较下一个段
 		}
-		
+
 		// 比较字符串长度，长度越长优先级越高
 		if len(segmentA) != len(segmentB) {
 			return len(segmentA) > len(segmentB)
 		}
-		
+
 		// 长度相同时，字典序比较（保证稳定排序）
 		if segmentA != segmentB {
 			return segmentA < segmentB
 		}
 	}
-	
+
 	// 所有段都相同，保持原有顺序（稳定排序）
 	return false
 }
-

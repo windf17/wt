@@ -1,4 +1,4 @@
-package wtoken
+package wt
 
 import (
 	"crypto/aes"

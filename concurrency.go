@@ -1,4 +1,4 @@
-package wtoken
+package wt
 
 import (
 	"context"
@@ -26,7 +26,7 @@ func NewRWMutexWithTimeout(timeout time.Duration) *RWMutexWithTimeout {
  */
 func (rw *RWMutexWithTimeout) TryLockWithTimeout(ctx context.Context) bool {
 	done := make(chan bool, 1)
-	
+
 	go func() {
 		rw.mu.Lock()
 		select {
@@ -55,7 +55,7 @@ func (rw *RWMutexWithTimeout) TryLockWithTimeout(ctx context.Context) bool {
  */
 func (rw *RWMutexWithTimeout) TryRLockWithTimeout(ctx context.Context) bool {
 	done := make(chan bool, 1)
-	
+
 	go func() {
 		rw.mu.RLock()
 		select {
@@ -134,19 +134,19 @@ func (wp *WorkerPool) Submit(job func()) bool {
 			// 捕获向已关闭channel发送数据的panic
 		}
 	}()
-	
+
 	select {
 	case <-wp.ctx.Done():
 		return false
 	default:
 	}
-	
+
 	wp.mu.RLock()
 	defer wp.mu.RUnlock()
 	if wp.stopped {
 		return false
 	}
-	
+
 	select {
 	case wp.jobQueue <- job:
 		return true
@@ -164,7 +164,7 @@ func (wp *WorkerPool) Stop() {
 	wp.mu.Lock()
 	wp.stopped = true
 	wp.mu.Unlock()
-	
+
 	// 先关闭jobQueue，让worker自然退出
 	close(wp.jobQueue)
 	// 等待所有worker完成

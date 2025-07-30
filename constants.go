@@ -1,4 +1,4 @@
-package wtoken
+package wt
 
 // 文件权限常量
 const (

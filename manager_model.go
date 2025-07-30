@@ -1,6 +1,6 @@
-package wtoken
+package wt
 
-import "github.com/windf17/wtoken/models"
+import "github.com/windf17/wt/models"
 
 // IManager token管理器接口
 type IManager[T any] interface {

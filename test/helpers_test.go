@@ -3,8 +3,8 @@ package test
 import (
 	"testing"
 
-	"github.com/windf17/wtoken"
-	"github.com/windf17/wtoken/utility"
+	"github.com/windf17/wt"
+	"github.com/windf17/wt/utility"
 )
 
 // ========== Utility Functions Tests ==========
@@ -165,7 +165,7 @@ func TestValidateIPAddress(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := wtoken.ValidateIPAddress(tt.ip)
+			err := wt.ValidateIPAddress(tt.ip)
 			if (err == nil) != tt.expected {
 				t.Errorf("ValidateIPAddress(%s) = %v, expected %v", tt.ip, err == nil, tt.expected)
 			}
@@ -191,7 +191,7 @@ func TestValidateTokenExpire(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := wtoken.ValidateTokenExpire(tt.expire, nil)
+			err := wt.ValidateTokenExpire(tt.expire, nil)
 			if (err == nil) != tt.expected {
 				t.Errorf("ValidateTokenExpire(%d) = %v, expected %v", tt.expire, err == nil, tt.expected)
 			}
@@ -215,7 +215,7 @@ func TestValidateStringNotEmpty(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := wtoken.ValidateStringNotEmpty(tt.value, tt.fieldName)
+			err := wt.ValidateStringNotEmpty(tt.value, tt.fieldName)
 			if (err == nil) != tt.expected {
 				t.Errorf("ValidateStringNotEmpty(%s, %s) = %v, expected %v", tt.value, tt.fieldName, err == nil, tt.expected)
 			}
@@ -242,7 +242,7 @@ func TestValidateStringLength(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := wtoken.ValidateStringLength(tt.value, tt.fieldName, tt.minLen, tt.maxLen)
+			err := wt.ValidateStringLength(tt.value, tt.fieldName, tt.minLen, tt.maxLen)
 			if (err == nil) != tt.expected {
 				t.Errorf("ValidateStringLength(%s, %s, %d, %d) = %v, expected %v",
 					tt.value, tt.fieldName, tt.minLen, tt.maxLen, err == nil, tt.expected)
@@ -267,7 +267,7 @@ func TestValidatePositiveInt(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := wtoken.ValidatePositiveInt(tt.value, tt.fieldName)
+			err := wt.ValidatePositiveInt(tt.value, tt.fieldName)
 			if (err == nil) != tt.expected {
 				t.Errorf("ValidatePositiveInt(%d, %s) = %v, expected %v", tt.value, tt.fieldName, err == nil, tt.expected)
 			}
@@ -294,7 +294,7 @@ func TestValidateIntRange(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := wtoken.ValidateIntRange(tt.value, tt.fieldName, tt.min, tt.max)
+			err := wt.ValidateIntRange(tt.value, tt.fieldName, tt.min, tt.max)
 			if (err == nil) != tt.expected {
 				t.Errorf("ValidateIntRange(%d, %s, %d, %d) = %v, expected %v",
 					tt.value, tt.fieldName, tt.min, tt.max, err == nil, tt.expected)
@@ -324,7 +324,7 @@ func TestValidateSliceNotEmpty(t *testing.T) {
 			for _, v := range tt.slice {
 				interfaceSlice = append(interfaceSlice, v)
 			}
-			err := wtoken.ValidateSliceNotEmpty(interfaceSlice, tt.fieldName)
+			err := wt.ValidateSliceNotEmpty(interfaceSlice, tt.fieldName)
 			if (err == nil) != tt.expected {
 				t.Errorf("ValidateSliceNotEmpty(%v, %s) = %v, expected %v", tt.slice, tt.fieldName, err == nil, tt.expected)
 			}
@@ -353,7 +353,7 @@ func TestValidateMapNotEmpty(t *testing.T) {
 			for k, v := range tt.mapValue {
 				interfaceMap[k] = v
 			}
-			err := wtoken.ValidateMapNotEmpty(interfaceMap, tt.fieldName)
+			err := wt.ValidateMapNotEmpty(interfaceMap, tt.fieldName)
 			if (err == nil) != tt.expected {
 				t.Errorf("ValidateMapNotEmpty(%v, %s) = %v, expected %v", tt.mapValue, tt.fieldName, err == nil, tt.expected)
 			}
@@ -388,6 +388,6 @@ func BenchmarkParsePathToSegments(b *testing.B) {
 // BenchmarkValidateIPAddress 基准测试IP地址验证
 func BenchmarkValidateIPAddress(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		wtoken.ValidateIPAddress("192.168.1.1")
+		wt.ValidateIPAddress("192.168.1.1")
 	}
 }

@@ -1,5 +1,5 @@
 /*
-wtoken Web服务器完整示例
+wt Web服务器完整示例
 
 本示例演示了一个完整的用户权限管理系统，包括：
 
@@ -28,8 +28,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/windf17/wtoken"
-	"github.com/windf17/wtoken/models"
+	"github.com/windf17/wt"
+	"github.com/windf17/wt/models"
 )
 
 // UserInfo 用户信息结构
@@ -60,21 +60,21 @@ type LoginResponse struct {
 	UserInfo  UserInfo  `json:"user_info"`
 }
 
-var tokenManager *wtoken.Manager[UserInfo]
+var tokenManager *wt.Manager[UserInfo]
 
 /**
  * initTokenManager 初始化Token管理器
- * 演示wtoken软件包的各项参数设置使用方法
+ * 演示wt软件包的各项参数设置使用方法
  */
 func initTokenManager() {
 	// ========== 系统配置参数说明 ==========
-	// wtoken.ConfigRaw 结构体包含了所有可配置的参数
-	config := &wtoken.ConfigRaw{
+	// wt.ConfigRaw 结构体包含了所有可配置的参数
+	config := &wt.ConfigRaw{
 		// 基础配置
-		MaxTokens:      10000,              // 最大Token数量限制
-		Delimiter:      ",",                // API路径分隔符
-		TokenRenewTime: "24h",              // Token自动续期时间
-		Language:       wtoken.LangChinese, // 错误消息语言
+		MaxTokens:      10000,          // 最大Token数量限制
+		Delimiter:      ",",            // API路径分隔符
+		TokenRenewTime: "24h",          // Token自动续期时间
+		Language:       wt.LangChinese, // 错误消息语言
 
 		// ========== Token验证参数配置 ==========
 		// 这些参数可以在运行时动态配置，提供更灵活的验证策略
@@ -98,8 +98,8 @@ func initTokenManager() {
 
 	// ========== Token管理器初始化 ==========
 	// InitTM函数接受三个参数：配置、用户组、自定义验证函数
-	manager := wtoken.InitTM[UserInfo](config, groups, nil)
-	tokenManager = manager.(*wtoken.Manager[UserInfo])
+	manager := wt.InitTM[UserInfo](config, groups, nil)
+	tokenManager = manager.(*wt.Manager[UserInfo])
 
 	// ========== 其他可选配置示例 ==========
 	// 以下是一些运行时可以调用的配置方法示例：
@@ -111,7 +111,7 @@ func initTokenManager() {
 	// tokenManager.SetCustomValidator(customValidator)
 
 	// 3. 动态添加用户组（可选）
-	// newGroup := wtoken.GroupRaw{
+	// newGroup := wt.GroupRaw{
 	//     ID: 4,
 	//     Name: "临时用户",
 	//     TokenExpire: "30m",
@@ -129,7 +129,7 @@ func initTokenManager() {
 
 /**
  * authMiddleware Token认证中间件
- * 演示wtoken软件包的Token验证和权限检查功能
+ * 演示wt软件包的Token验证和权限检查功能
  * @param {http.Handler} next 下一个处理器
  * @returns {http.Handler} 包装后的处理器
  */
@@ -193,8 +193,8 @@ func authMiddleware(next http.Handler) http.Handler {
 		// 3. apiPath: 要访问的API路径（如：/api/user/profile）
 		authResult := tokenManager.Auth(token, clientIP, r.URL.Path)
 		log.Printf("Token验证结果: %v", authResult)
-		if authResult != wtoken.E_Success {
-			if authResult == wtoken.E_Unauthorized {
+		if authResult != wt.E_Success {
+			if authResult == wt.E_Unauthorized {
 				responseJSON(w, http.StatusForbidden, fmt.Sprintf("权限不足: %v", authResult), nil)
 			} else {
 				responseJSON(w, http.StatusUnauthorized, fmt.Sprintf("认证失败: %v", authResult), nil)
@@ -206,7 +206,7 @@ func authMiddleware(next http.Handler) http.Handler {
 		// GetUserData函数获取Token绑定的用户信息
 		// 返回之前通过SetUserData设置的自定义用户数据
 		userInfo, err := tokenManager.GetUserData(token)
-		if err == wtoken.E_Success {
+		if err == wt.E_Success {
 			// 将用户信息添加到请求头，供后续处理器使用
 			r.Header.Set("X-User-ID", fmt.Sprintf("%d", userInfo.UserID))
 			r.Header.Set("X-Username", userInfo.Username)
@@ -342,7 +342,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	// 2. groupID: 用户组ID（决定权限和Token过期时间）
 	// 3. clientIP: 客户端IP地址（用于安全验证）
 	token, err := tokenManager.AddToken(userInfo.UserID, groupID, clientIP)
-	if err != wtoken.E_Success {
+	if err != wt.E_Success {
 		responseJSON(w, http.StatusInternalServerError, fmt.Sprintf("Token创建失败: %v", err), nil)
 		return
 	}
@@ -359,7 +359,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		// 参数说明：
 		// 1. token: 要绑定数据的Token字符串
 		// 2. userInfo: 要绑定的用户信息（泛型类型，本例中为UserInfo结构体）
-		if err := tokenManager.SetUserData(token, userInfo); err != wtoken.E_Success {
+		if err := tokenManager.SetUserData(token, userInfo); err != wt.E_Success {
 			log.Printf("设置用户数据失败: %v", err)
 		} else {
 			log.Printf("用户数据设置成功 - 用户: %s, 邮箱: %s", userInfo.Username, userInfo.Email)
@@ -387,7 +387,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 /**
  * logoutHandler 用户登出处理器
- * 演示wtoken软件包的Token删除功能
+ * 演示wt软件包的Token删除功能
  * @param {http.ResponseWriter} w 响应写入器
  * @param {*http.Request} r 请求对象
  */
@@ -419,7 +419,7 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. token: 要删除的Token字符串
 	// 删除后该Token将立即失效，无法再用于API访问
 	// 同时会清理相关的用户数据和缓存信息
-	if err := tokenManager.DelToken(token); err != wtoken.E_Success {
+	if err := tokenManager.DelToken(token); err != wt.E_Success {
 		responseJSON(w, http.StatusInternalServerError, fmt.Sprintf("登出失败: %v", err), nil)
 		return
 	}
@@ -475,7 +475,7 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
  * WebServerExample Web服务器示例主函数
  */
 func WebServerExample() {
-	fmt.Println("=== WToken Web服务器完整示例 ===")
+	fmt.Println("=== wt Web服务器完整示例 ===")
 
 	// 初始化Token管理器
 	initTokenManager()

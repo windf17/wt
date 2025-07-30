@@ -1,4 +1,4 @@
-package wtoken
+package wt
 
 import (
 	"crypto/rand"
@@ -129,7 +129,7 @@ func (tm *Manager[T]) AddToken(userID uint, groupID uint, clientIp string) (stri
 	// 如果配置了最大token数量，先清理过期token
 	if tm.config.MaxTokens > 0 {
 		tm.cleanExpiredTokensInternal()
-		
+
 		// 检查清理后的token数量是否仍然达到上限
 		if len(tm.tokens) >= tm.config.MaxTokens {
 			// 清理最久没有使用的token（LRU策略）
@@ -159,7 +159,7 @@ func (tm *Manager[T]) DelToken(key string) ErrorCode {
 	if !exists {
 		return (E_InvalidToken)
 	}
-	
+
 	// 检查token是否过期
 	isExpired := token.IsExpired()
 	delete(tm.tokens, key)

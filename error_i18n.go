@@ -1,4 +1,4 @@
-package wtoken
+package wt
 
 // Language 定义语言类型
 type Language string
@@ -14,14 +14,14 @@ const (
 var ErrorI18nMessages = map[Language]map[ErrorCode]string{
 	LangChinese: {
 		// 成功状态
-		E_Success:        "成功",
+		E_Success: "成功",
 		// 基础错误
-		E_Internal:       "系统内部错误",
-		E_System:         "系统错误",
-		E_ConfigInvalid:  "配置无效",
+		E_Internal:      "系统内部错误",
+		E_System:        "系统错误",
+		E_ConfigInvalid: "配置无效",
 
-		E_InvalidParams:  "无效参数",
-		E_APINotFound:    "接口不存在",
+		E_InvalidParams: "无效参数",
+		E_APINotFound:   "接口不存在",
 
 		// 认证鉴权
 		E_Unauthorized:      "未授权访问",
@@ -70,18 +70,17 @@ var ErrorI18nMessages = map[Language]map[ErrorCode]string{
 		E_DBDuplicate:     "唯一键冲突",
 		E_DBForeignKey:    "外键约束违反",
 
-
 		E_Unknown: "未知错误",
 	},
 	LangEnglish: {
 		// Success status
-		E_Success:        "Success",
-		E_Internal:       "Internal system error",
-		E_System:         "System error",
-		E_ConfigInvalid:  "Invalid configuration",
+		E_Success:       "Success",
+		E_Internal:      "Internal system error",
+		E_System:        "System error",
+		E_ConfigInvalid: "Invalid configuration",
 
-		E_InvalidParams:  "Invalid parameters",
-		E_APINotFound:    "API not found",
+		E_InvalidParams: "Invalid parameters",
+		E_APINotFound:   "API not found",
 
 		E_Unauthorized:      "Unauthorized access",
 		E_Forbidden:         "Access forbidden",
@@ -125,7 +124,6 @@ var ErrorI18nMessages = map[Language]map[ErrorCode]string{
 		E_DBTimeout:       "Database operation timeout",
 		E_DBDuplicate:     "Duplicate key violation",
 		E_DBForeignKey:    "Foreign key violation",
-
 
 		E_Unknown: "Unknown error",
 	},
