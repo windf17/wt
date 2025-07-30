@@ -21,6 +21,8 @@ func (tm *Manager[T]) GetStats() Stats {
 // count为正数时增加统计数，为负数时减少统计数
 // isExpired参数用于指定是否为过期token的统计
 func (tm *Manager[T]) updateStatsCount(count int, isExpired bool) {
+	tm.lock()
+	defer tm.unlock()
 	tm.stats.TotalTokens += count
 	if isExpired {
 		tm.stats.ExpiredTokens += count

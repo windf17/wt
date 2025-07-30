@@ -24,6 +24,20 @@ func (r *ErrorRegistry) registerErrorMessage(lang Language, code ErrorCode, mess
 	r.messages[lang][code] = message
 }
 
+// setLanguage 设置默认语言
+func (r *ErrorRegistry) setLanguage(lang Language) {
+	r.language = lang
+}
+
+// setErrorMessages 设置错误消息
+func (r *ErrorRegistry) setErrorMessages(errorMessages map[Language]map[ErrorCode]string) {
+	for lang, messages := range errorMessages {
+		for code, message := range messages {
+			r.registerErrorMessage(lang, code, message)
+		}
+	}
+}
+
 // getErrorMessage 获取错误信息
 func (r *ErrorRegistry) getErrorMessage(code ErrorCode) string {
 	// 检查语言是否存在
@@ -36,11 +50,11 @@ func (r *ErrorRegistry) getErrorMessage(code ErrorCode) string {
 
 	// 如果找不到对应的错误信息，返回未知错误信息
 	if unknownMsg, ok := r.messages[r.language][E_Unknown]; ok {
-		return fmt.Sprintf("%s, Code: %d)", unknownMsg, code)
+		return fmt.Sprintf("%s (Code: %d)", unknownMsg, code)
 	}
 
 	// 如果连未知错误信息都找不到，返回固定的错误信息
-	return fmt.Sprintf("Unknown error code , Code: %d)", code)
+	return fmt.Sprintf("Unknown error code (Code: %d)", code)
 }
 
 func init() {

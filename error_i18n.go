@@ -13,12 +13,13 @@ const (
 // 多语言错误信息配置
 var ErrorI18nMessages = map[Language]map[ErrorCode]string{
 	LangChinese: {
+		// 成功状态
+		E_Success:        "成功",
 		// 基础错误
 		E_Internal:       "系统内部错误",
 		E_System:         "系统错误",
 		E_ConfigInvalid:  "配置无效",
-		E_CacheLoadFail:  "缓存加载失败",
-		E_CacheParseFail: "缓存解析失败",
+
 		E_InvalidParams:  "无效参数",
 		E_APINotFound:    "接口不存在",
 
@@ -68,16 +69,17 @@ var ErrorI18nMessages = map[Language]map[ErrorCode]string{
 		E_DBTimeout:       "数据库操作超时",
 		E_DBDuplicate:     "唯一键冲突",
 		E_DBForeignKey:    "外键约束违反",
-		E_DBBackupFail:    "数据库备份失败",
+
 
 		E_Unknown: "未知错误",
 	},
 	LangEnglish: {
+		// Success status
+		E_Success:        "Success",
 		E_Internal:       "Internal system error",
 		E_System:         "System error",
 		E_ConfigInvalid:  "Invalid configuration",
-		E_CacheLoadFail:  "Cache load failed",
-		E_CacheParseFail: "Cache parse failed",
+
 		E_InvalidParams:  "Invalid parameters",
 		E_APINotFound:    "API not found",
 
@@ -123,7 +125,7 @@ var ErrorI18nMessages = map[Language]map[ErrorCode]string{
 		E_DBTimeout:       "Database operation timeout",
 		E_DBDuplicate:     "Duplicate key violation",
 		E_DBForeignKey:    "Foreign key violation",
-		E_DBBackupFail:    "Database backup failed",
+
 
 		E_Unknown: "Unknown error",
 	},

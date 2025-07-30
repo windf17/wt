@@ -1,43 +1,44 @@
 package wtoken
 
-// IManager 定义Token管理器接口
+import "github.com/windf17/wtoken/models"
+
+// IManager token管理器接口
 type IManager[T any] interface {
-	// GetToken 获取token
+	// token管理
 	GetToken(key string) (*Token[T], ErrorCode)
-	// AddToken 新增Token
-	AddToken(userID uint, groupID uint, ip string) (string, ErrorCode)
-	// GenerateToken 生成token
+	AddToken(userID uint, groupID uint, clientIp string) (string, ErrorCode)
 	GenerateToken() (string, error)
-	// DelToken 删除token
 	DelToken(key string) ErrorCode
-	// DelTokenByUserId 根据用户ID删除所有对应的token
 	DelTokensByUserID(userID uint) ErrorCode
-	// DelTokensByGroupID 根据用户组ID删除所有对应的token
 	DelTokensByGroupID(groupID uint) ErrorCode
-	// UpdateToken 更新token
 	UpdateToken(key string, token *Token[T]) ErrorCode
-	// CheckToken 检查token是否有效
-	CheckToken(key string) ErrorCode
-	// CleanExpiredTokens 清理过期的token
 	CleanExpiredTokens()
 
-	// Authenticate 鉴权
-	Authenticate(key string, url string, ip string) ErrorCode
+	// 批量操作
+	BatchDeleteTokensByUserIDs(userIDs []uint) ErrorCode
+	BatchDeleteTokensByGroupIDs(groupIDs []uint) ErrorCode
+	BatchDeleteExpiredTokens() ErrorCode
+	GetTokensByUserID(userID uint) []*Token[T]
+	GetTokensByGroupID(groupID uint) []*Token[T]
 
-	// GetGroup 获取指定用户组信息
-	GetGroup(groupID uint) (*Group, ErrorCode)
-	// AddGroup 新增用户组信息
-	AddGroup(raw GroupRaw) ErrorCode
-	// DeleteGroup 删除用户组信息
+	// 身份验证
+	Auth(key string, clientIp string, api string) ErrorCode
+	BatchAuth(key string, clientIp string, apis []string) []bool
+
+	// 用户组管理
+	GetGroup(groupID uint) (*models.Group, ErrorCode)
+	AddGroup(group *models.GroupRaw) ErrorCode
 	DelGroup(groupID uint) ErrorCode
-	// UpdateGroup 更新用户组信息
-	UpdateGroup(raw GroupRaw) ErrorCode
+	UpdateGroup(groupID uint, group *models.GroupRaw) ErrorCode
+	UpdateAllGroup(groups []models.GroupRaw) ErrorCode
 
-	// GetStats 获取统计信息
+	// 统计信息
 	GetStats() Stats
 
-	// 存储用户数据
-	SaveData(key string, data T) ErrorCode
-	// 获取用户数据
-	GetData(key string) (T, ErrorCode)
+	// 用户数据存储
+	SetUserData(key string, data T) ErrorCode
+	GetUserData(key string) (T, ErrorCode)
+
+	// 资源管理
+	Close()
 }

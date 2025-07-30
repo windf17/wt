@@ -20,9 +20,9 @@ const (
 	// 系统级错误
 	E_Internal       ErrorCode = 1001 // 系统内部错误
 	E_System         ErrorCode = 1002 // 系统错误
+	E_SystemError    ErrorCode = 1003 // 系统错误（通用）
 	E_ConfigInvalid  ErrorCode = 1101 // 配置无效
-	E_CacheLoadFail  ErrorCode = 1201 // 缓存加载失败
-	E_CacheParseFail ErrorCode = 1202 // 缓存解析失败
+
 	E_InvalidParams  ErrorCode = 1301 // 无效参数
 	E_APINotFound    ErrorCode = 1401 // 接口不存在
 )
@@ -83,6 +83,7 @@ const (
 const (
 	// 基础操作
 	E_DBConnect       ErrorCode = 5001 // 数据库连接失败
+	E_DatabaseError   ErrorCode = 5002 // 数据库错误（通用）
 	E_DBQuery         ErrorCode = 5010 // 数据库查询失败
 	E_DBQueryNotFound ErrorCode = 5011 // 记录不存在
 	E_DBInsert        ErrorCode = 5020 // 数据库插入失败
@@ -99,7 +100,7 @@ const (
 	E_DBForeignKey ErrorCode = 5202 // 外键约束违反
 
 	// 扩展功能
-	E_DBBackupFail ErrorCode = 5301 // 数据库备份失败
+
 )
 
 /******************** 其他通用 (9000-9999) ********************/
