@@ -16,7 +16,7 @@ WT 是一个**企业级**高性能、线程安全的 Token 管理系统，专为
 ## 📦 快速安装
 
 ```bash
-go get github.com/windf17/wt
+go get wt
 ```
 
 ### 系统要求
@@ -27,27 +27,31 @@ go get github.com/windf17/wt
 
 ## 🚀 快速开始
 
-### 1. 最简单的使用方式（5分钟上手）
+### 1. 最简单的使用方式（5 分钟上手）
 
 ```go
 package main
 
 import (
     "fmt"
-    "github.com/windf17/wt"
+    "wt"
 )
 
 func main() {
     // 1. 创建基础配置
     config := &wt.ConfigRaw{
+        Language:       "en",
         MaxTokens:      1000,
-        TokenRenewTime: "24h",
-        Language:       "zh",
+        Delimiter:      ",",
+        TokenRenewTime: "10m",
     }
 
+    type User struct {
+        ID int
+        Name string
+    }
     // 2. 初始化Token管理器（无权限控制模式）
-    tm := wt.InitTM[map[string]any](config, nil, nil)
-    defer tm.Close()
+    tm := wt.InitTM[User](config, nil)
 
     // 3. 创建用户Token
     token, err := tm.AddToken("user123", 0, "192.168.1.1")
@@ -64,7 +68,7 @@ func main() {
     // 5. 获取Token信息
     tokenInfo, getErr := tm.GetToken(token)
     if getErr == wt.E_Success {
-        fmt.Printf("📋 Token信息: 用户ID=%v, 组ID=%v\n", 
+        fmt.Printf("📋 Token信息: 用户ID=%v, 组ID=%v\n",
             tokenInfo.UserID, tokenInfo.GroupID)
     }
 
@@ -83,8 +87,8 @@ package main
 
 import (
     "fmt"
-    "github.com/windf17/wt"
-    "github.com/windf17/wt/models"
+    "wt"
+    "wt/models"
 )
 
 func main() {
@@ -125,17 +129,17 @@ func main() {
     userToken, _ := tm.AddToken(1002, 2, "192.168.1.101")  // 普通用户
 
     fmt.Println("=== 权限测试 ===")
-    
+
     // 5. 测试管理员权限
     if tm.Auth(adminToken, "192.168.1.100", "/api/admin/users") == wt.E_Success {
         fmt.Println("✅ 管理员可以访问 /api/admin/users")
     }
-    
+
     // 6. 测试普通用户权限
     if tm.Auth(userToken, "192.168.1.101", "/api/user/profile") == wt.E_Success {
         fmt.Println("✅ 普通用户可以访问 /api/user/profile")
     }
-    
+
     if tm.Auth(userToken, "192.168.1.101", "/api/admin/users") != wt.E_Success {
         fmt.Println("❌ 普通用户无法访问 /api/admin/users")
     }
@@ -143,12 +147,12 @@ func main() {
     // 7. 批量权限检查（前端按钮控制）
     apis := []string{
         "/api/user/profile",
-        "/api/user/settings", 
+        "/api/user/settings",
         "/api/admin/users",
         "/api/public/info",
     }
     results := tm.BatchAuth(userToken, "192.168.1.101", apis)
-    
+
     fmt.Println("\n=== 批量权限检查结果 ===")
     for i, api := range apis {
         status := "❌ 拒绝"
@@ -210,7 +214,7 @@ type UserData = map[string]any
 type UserData = string // 存储JSON字符串
 ```
 
-#### 4.2 初始化Token管理器
+#### 4.2 初始化 Token 管理器
 
 ```go
 // Use custom struct
@@ -230,7 +234,7 @@ package main
 
 import (
     "fmt"
-    "github.com/windf17/wt"
+    "wt"
 )
 
 func main() {
@@ -297,8 +301,8 @@ func AuthMiddleware(tm *wt.Manager[UserInfo]) func(http.Handler) http.Handler {
                 // 将用户信息添加到请求上下文
                 ctx := context.WithValue(r.Context(), "user", userData)
                 r = r.WithContext(ctx)
-                
-                fmt.Printf("当前用户: %s (ID: %d, 角色: %s)\n", 
+
+                fmt.Printf("当前用户: %s (ID: %d, 角色: %s)\n",
                     userData.Username, userData.UserID, userData.Role)
             }
 
@@ -326,7 +330,7 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
         "gender":   user.Gender,
         "avatar":   user.Avatar,
     }
-    
+
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(response)
 }
@@ -359,7 +363,7 @@ func UpdateUserData(tm *wt.Manager[UserInfo], token string) {
 }
 ```
 
-#### 4.6 使用Map类型存储灵活数据
+#### 4.6 使用 Map 类型存储灵活数据
 
 ```go
 // 使用map存储动态数据
@@ -390,7 +394,7 @@ func FlexibleUserData() {
     data, _ := tm.GetUserData(token)
     fmt.Printf("用户名: %v\n", data["username"])
     fmt.Printf("权限: %v\n", data["permissions"])
-    
+
     // 类型断言获取嵌套数据
     if settings, ok := data["settings"].(map[string]any); ok {
         fmt.Printf("主题: %v\n", settings["theme"])
@@ -408,21 +412,21 @@ type UserInfo struct {
     Username string `json:"username"`
     Email    string `json:"email"`
     Phone    string `json:"phone"`
-    
+
     // 权限相关
     Role        string   `json:"role"`
     Permissions []string `json:"permissions"`
-    
+
     // 个人信息
     RealName string `json:"real_name"`
     Gender   string `json:"gender"`
     Avatar   string `json:"avatar"`
-    
+
     // 系统信息
     LastLogin   time.Time `json:"last_login"`
     LoginCount  int       `json:"login_count"`
     IsActive    bool      `json:"is_active"`
-    
+
     // 自定义设置
     Settings map[string]any `json:"settings"`
 }
@@ -452,7 +456,7 @@ func (s *UserService) UpdateUserSettings(token string, settings map[string]any) 
     if err != nil {
         return err
     }
-    
+
     user.Settings = settings
     return s.SetUser(token, *user)
 }
@@ -460,11 +464,11 @@ func (s *UserService) UpdateUserSettings(token string, settings map[string]any) 
 
 #### 4.8 注意事项
 
-1. **类型安全**: 推荐使用自定义结构体而不是map，提供编译时类型检查
-2. **数据大小**: 避免存储过大的数据，建议单个用户数据不超过1MB
-3. **并发安全**: SetUserData和GetUserData都是线程安全的
+1. **类型安全**: 推荐使用自定义结构体而不是 map，提供编译时类型检查
+2. **数据大小**: 避免存储过大的数据，建议单个用户数据不超过 1MB
+3. **并发安全**: SetUserData 和 GetUserData 都是线程安全的
 4. **性能考虑**: 用户数据存储在内存中，访问速度极快
-5. **数据持久化**: 用户数据会随Token一起持久化到缓存文件
+5. **数据持久化**: 用户数据会随 Token 一起持久化到缓存文件
 
 ## 🎯 性能指标
 
@@ -536,9 +540,9 @@ go tool cover -html=coverage.out
 
 ## 📞 联系我们
 
-- 项目主页: [https://github.com/windf17/wt](https://github.com/windf17/wt)
-- 问题反馈: [https://github.com/windf17/wt/issues](https://github.com/windf17/wt/issues)
-- 邮箱: 40859419@qq.com
+-   项目主页: [https://wt](https://wt)
+-   问题反馈: [https://wt/issues](https://wt/issues)
+-   邮箱: 40859419@qq.com
 
 ---
 
@@ -553,14 +557,14 @@ WT is an **enterprise-grade** high-performance, thread-safe Token management sys
 ## 📦 Quick Installation
 
 ```bash
-go get github.com/windf17/wt
+go get wt
 ```
 
 ### System Requirements
 
-- Go 1.18+ (supports generics)
-- Memory: Minimum 64MB
-- Operating System: Linux/Windows/macOS
+-   Go 1.18+ (supports generics)
+-   Memory: Minimum 64MB
+-   Operating System: Linux/Windows/macOS
 
 ## 🚀 Quick Start
 
@@ -571,19 +575,25 @@ package main
 
 import (
     "fmt"
-    "github.com/windf17/wt"
+    "wt"
 )
 
 func main() {
     // 1. Create basic configuration
     config := &wt.ConfigRaw{
-        MaxTokens:      1000,
-        TokenRenewTime: "24h",
         Language:       "en",
+        MaxTokens:      1000,
+        Delimiter:      ",",
+        TokenRenewTime: "10m",
     }
 
+// 1.1 Define user data structure (recommended)
+    type User struct {
+        ID int
+        Name string
+    }
     // 2. Initialize Token manager (no permission control mode)
-    tm := wt.InitTM[map[string]any](config, nil, nil)
+    tm := wt.InitTM[User](config, nil)
     defer tm.Close()
 
     // 3. Create user Token
@@ -601,7 +611,7 @@ func main() {
     // 5. Get Token information
     tokenInfo, getErr := tm.GetToken(token)
     if getErr == wt.E_Success {
-        fmt.Printf("📋 Token info: UserID=%v, GroupID=%v\n", 
+        fmt.Printf("📋 Token info: UserID=%v, GroupID=%v\n",
             tokenInfo.UserID, tokenInfo.GroupID)
     }
 
@@ -620,8 +630,8 @@ package main
 
 import (
     "fmt"
-    "github.com/windf17/wt"
-    "github.com/windf17/wt/models"
+    "wt"
+    "wt/models"
 )
 
 func main() {
@@ -662,17 +672,17 @@ func main() {
     userToken, _ := tm.AddToken(1002, 2, "192.168.1.101")  // Regular user
 
     fmt.Println("=== Permission Test ===")
-    
+
     // 5. Test administrator permissions
     if tm.Auth(adminToken, "192.168.1.100", "/api/admin/users") == wt.E_Success {
         fmt.Println("✅ Administrator can access /api/admin/users")
     }
-    
+
     // 6. Test regular user permissions
     if tm.Auth(userToken, "192.168.1.101", "/api/user/profile") == wt.E_Success {
         fmt.Println("✅ Regular user can access /api/user/profile")
     }
-    
+
     if tm.Auth(userToken, "192.168.1.101", "/api/admin/users") != wt.E_Success {
         fmt.Println("❌ Regular user cannot access /api/admin/users")
     }
@@ -680,12 +690,12 @@ func main() {
     // 7. Batch permission check (frontend button control)
     apis := []string{
         "/api/user/profile",
-        "/api/user/settings", 
+        "/api/user/settings",
         "/api/admin/users",
         "/api/public/info",
     }
     results := tm.BatchAuth(userToken, "192.168.1.101", apis)
-    
+
     fmt.Println("\n=== Batch Permission Check Results ===")
     for i, api := range apis {
         status := "❌ Denied"
@@ -767,7 +777,7 @@ package main
 
 import (
     "fmt"
-    "github.com/windf17/wt"
+    "wt"
 )
 
 func main() {
@@ -834,8 +844,8 @@ func AuthMiddleware(tm *wt.Manager[UserInfo]) func(http.Handler) http.Handler {
                 // Add user information to request context
                 ctx := context.WithValue(r.Context(), "user", userData)
                 r = r.WithContext(ctx)
-                
-                fmt.Printf("Current user: %s (ID: %d, Role: %s)\n", 
+
+                fmt.Printf("Current user: %s (ID: %d, Role: %s)\n",
                     userData.Username, userData.UserID, userData.Role)
             }
 
@@ -863,7 +873,7 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
         "gender":   user.Gender,
         "avatar":   user.Avatar,
     }
-    
+
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(response)
 }
@@ -927,7 +937,7 @@ func FlexibleUserData() {
     data, _ := tm.GetUserData(token)
     fmt.Printf("Username: %v\n", data["username"])
     fmt.Printf("Permissions: %v\n", data["permissions"])
-    
+
     // Type assertion to get nested data
     if settings, ok := data["settings"].(map[string]any); ok {
         fmt.Printf("Theme: %v\n", settings["theme"])
@@ -945,21 +955,21 @@ type UserInfo struct {
     Username string `json:"username"`
     Email    string `json:"email"`
     Phone    string `json:"phone"`
-    
+
     // Permission related
     Role        string   `json:"role"`
     Permissions []string `json:"permissions"`
-    
+
     // Personal information
     RealName string `json:"real_name"`
     Gender   string `json:"gender"`
     Avatar   string `json:"avatar"`
-    
+
     // System information
     LastLogin   time.Time `json:"last_login"`
     LoginCount  int       `json:"login_count"`
     IsActive    bool      `json:"is_active"`
-    
+
     // Custom settings
     Settings map[string]any `json:"settings"`
 }
@@ -989,7 +999,7 @@ func (s *UserService) UpdateUserSettings(token string, settings map[string]any) 
     if err != nil {
         return err
     }
-    
+
     user.Settings = settings
     return s.SetUser(token, *user)
 }
@@ -1005,38 +1015,38 @@ func (s *UserService) UpdateUserSettings(token string, settings map[string]any) 
 
 ## 🎯 Performance Metrics
 
-- **Throughput**: Up to **9,104,365 ops/s** (Token verification operations)
-- **Latency**: Average **124.6ns** response time
-- **Concurrency**: Supports million-level concurrent access, zero deadlock design
-- **Memory**: LRU cache optimization, efficient memory usage
-- **Test Verification**: Verified through 1000 concurrent user stress testing
+-   **Throughput**: Up to **9,104,365 ops/s** (Token verification operations)
+-   **Latency**: Average **124.6ns** response time
+-   **Concurrency**: Supports million-level concurrent access, zero deadlock design
+-   **Memory**: LRU cache optimization, efficient memory usage
+-   **Test Verification**: Verified through 1000 concurrent user stress testing
 
 ## 🚀 Core Features
 
 ### 🔥 Enterprise-Grade Features
 
-- **🛡️ Security Encryption**: AES-256-GCM encryption algorithm, enterprise-grade security standards
-- **⚡ Ultimate Performance**: 9+ million ops/s throughput, nanosecond-level response time
-- **🔒 Concurrent Safety**: Completely thread-safe, supports high concurrency access, zero deadlock
-- **🎯 Permission Control**: Role-based access control (RBAC), fine-grained permission management
-- **📊 Real-time Monitoring**: Built-in performance metrics collection, complete system monitoring
+-   **🛡️ Security Encryption**: AES-256-GCM encryption algorithm, enterprise-grade security standards
+-   **⚡ Ultimate Performance**: 9+ million ops/s throughput, nanosecond-level response time
+-   **🔒 Concurrent Safety**: Completely thread-safe, supports high concurrency access, zero deadlock
+-   **🎯 Permission Control**: Role-based access control (RBAC), fine-grained permission management
+-   **📊 Real-time Monitoring**: Built-in performance metrics collection, complete system monitoring
 
 ### 💎 Core Functions
 
-- **Token Lifecycle Management**: Automatic expiration, renewal, cleanup
-- **Multi-user Group Permission Control**: Supports complex user group permission systems
-- **Generic Support**: Supports storage of any type of user data
-- **Persistent Storage**: Supports JSON format cache files and automatic backup
-- **LRU Cache Strategy**: Memory-optimized least recently used cache
+-   **Token Lifecycle Management**: Automatic expiration, renewal, cleanup
+-   **Multi-user Group Permission Control**: Supports complex user group permission systems
+-   **Generic Support**: Supports storage of any type of user data
+-   **Persistent Storage**: Supports JSON format cache files and automatic backup
+-   **LRU Cache Strategy**: Memory-optimized least recently used cache
 
 ### 🛠️ Advanced Features
 
-- **Batch Operations**: Efficient batch Token management
-- **Security Enhancement**: Token encryption, format validation, input sanitization
-- **Logging System**: Complete operation logs and security auditing
-- **Memory Optimization**: Automatic memory cleanup and object pooling
-- **Configuration Validation**: Complete configuration parameter validation
-- **Error Handling**: Unified error code system, multi-language support
+-   **Batch Operations**: Efficient batch Token management
+-   **Security Enhancement**: Token encryption, format validation, input sanitization
+-   **Logging System**: Complete operation logs and security auditing
+-   **Memory Optimization**: Automatic memory cleanup and object pooling
+-   **Configuration Validation**: Complete configuration parameter validation
+-   **Error Handling**: Unified error code system, multi-language support
 
 ## 🧪 Testing
 
@@ -1073,9 +1083,9 @@ Thanks to all developers who contributed to this project.
 
 ## 📞 Contact Us
 
-- Project Homepage: [https://github.com/windf17/wt](https://github.com/windf17/wt)
-- Issue Reports: [https://github.com/windf17/wt/issues](https://github.com/windf17/wt/issues)
-- Email: 40859419@qq.com
+-   Project Homepage: [https://wt](https://wt)
+-   Issue Reports: [https://wt/issues](https://wt/issues)
+-   Email: 40859419@qq.com
 
 ---
 

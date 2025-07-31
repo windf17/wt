@@ -8,25 +8,58 @@ import (
 	"encoding/base64"
 	"errors"
 	"io"
+	"golang.org/x/crypto/pbkdf2"
 )
 
 /**
  * SecurityManager 安全管理器
  */
 type SecurityManager struct {
-	key []byte // 加密密钥
+	key  []byte // 加密密钥
+	salt []byte // 盐值
 }
 
 /**
- * NewSecurityManager 创建安全管理器
+ * NewSecurityManager 创建一个新的安全管理器
  * @param {string} password 密码
  * @returns {*SecurityManager} 安全管理器实例
  */
 func NewSecurityManager(password string) *SecurityManager {
-	hash := sha256.Sum256([]byte(password))
-	return &SecurityManager{
-		key: hash[:],
+	return NewSecurityManagerWithSalt(password, nil)
+}
+
+/*
+NewSecurityManagerWithSalt 创建一个带盐值的安全管理器
+*/
+func NewSecurityManagerWithSalt(password string, salt []byte) *SecurityManager {
+	if len(salt) == 0 {
+		salt = make([]byte, 32)
+		rand.Read(salt)
 	}
+	
+	// 使用PBKDF2增强密钥安全性
+	key := pbkdf2.Key([]byte(password), salt, 10000, 32, sha256.New)
+	
+	return &SecurityManager{
+		key:  key,
+		salt: salt,
+	}
+}
+
+/*
+RotateKey 轮换密钥
+*/
+func (sm *SecurityManager) RotateKey(newPassword string) {
+	// 生成新的盐值
+	newSalt := make([]byte, 32)
+	rand.Read(newSalt)
+	
+	// 生成新的密钥
+	newKey := pbkdf2.Key([]byte(newPassword), newSalt, 10000, 32, sha256.New)
+	
+	// 原子性更新密钥和盐值
+	sm.key = newKey
+	sm.salt = newSalt
 }
 
 /**
@@ -99,18 +132,25 @@ func (sm *SecurityManager) HashSensitiveData(data string) string {
 	return base64.URLEncoding.EncodeToString(hash[:])
 }
 
+
 /**
  * ValidateTokenFormat 验证token格式
  * @param {string} token token字符串
- * @returns {bool} 是否有效
+ * @returns {bool} 是否为有效格式
  */
 func ValidateTokenFormat(token string) bool {
-	if len(token) == 0 {
+	if len(token) == 0 || len(token) > 1024 {
 		return false
 	}
+	
 	// 检查是否为有效的base64编码
-	_, err := base64.URLEncoding.DecodeString(token)
-	return err == nil
+	decoded, err := base64.URLEncoding.DecodeString(token)
+	if err != nil {
+		return false
+	}
+	
+	// 验证解码后的长度
+	return len(decoded) >= 16 && len(decoded) <= 256
 }
 
 /**

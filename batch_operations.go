@@ -1,23 +1,26 @@
 package wt
 
 import (
+	"errors"
 	"time"
+
+	"github.com/windf17/wt/models"
 )
 
 /**
  * BatchDeleteTokensByUserIDs 批量删除多个用户的所有token
  * @param {[]uint} userIDs 用户ID列表
- * @returns {ErrorCode} 操作结果错误码
+ * @returns {error} 操作结果错误信息
  */
-func (tm *Manager[T]) BatchDeleteTokensByUserIDs(userIDs []uint) ErrorCode {
+func (tm *Manager[T]) BatchDeleteTokensByUserIDs(userIDs []uint) error {
 	if len(userIDs) == 0 {
-		return E_Success // 空列表被认为是成功的操作
+		return nil // 空列表被认为是成功的操作
 	}
 
 	// 验证用户ID
 	for _, userID := range userIDs {
 		if userID == 0 {
-			return E_UserInvalid
+			return errors.New(getErrorMessage(tm.config.Language, "user_invalid"))
 		}
 	}
 
@@ -51,35 +54,32 @@ func (tm *Manager[T]) BatchDeleteTokensByUserIDs(userIDs []uint) ErrorCode {
 		}
 	}
 
-	// 直接更新统计信息，避免重复加锁
-	if activeDeleted > 0 {
-		tm.stats.TotalTokens -= activeDeleted
-		tm.stats.ActiveTokens -= activeDeleted
-		tm.stats.LastUpdateTime = time.Now()
-	}
-	if expiredDeleted > 0 {
-		// 对于过期token，只减少总数，不减少过期token计数
-		tm.stats.TotalTokens -= expiredDeleted
+	// 原子性更新统计信息
+	if totalDeleted > 0 {
+		tm.stats.TotalTokens -= totalDeleted
+		if activeDeleted > 0 {
+			tm.stats.ActiveTokens -= activeDeleted
+		}
 		tm.stats.LastUpdateTime = time.Now()
 	}
 
-	return E_Success
+	return nil
 }
 
 /**
  * BatchDeleteTokensByGroupIDs 批量删除多个用户组的所有token
  * @param {[]uint} groupIDs 用户组ID列表
- * @returns {ErrorCode} 操作结果错误码
+ * @returns {error} 操作结果错误信息
  */
-func (tm *Manager[T]) BatchDeleteTokensByGroupIDs(groupIDs []uint) ErrorCode {
+func (tm *Manager[T]) BatchDeleteTokensByGroupIDs(groupIDs []uint) error {
 	if len(groupIDs) == 0 {
-		return E_Success // 空列表被认为是成功的操作
+		return nil // 空列表被认为是成功的操作
 	}
 
 	// 验证用户组ID
 	for _, groupID := range groupIDs {
 		if groupID == 0 {
-			return E_GroupInvalid
+			return errors.New(getErrorMessage(tm.config.Language, "group_invalid"))
 		}
 	}
 
@@ -89,7 +89,7 @@ func (tm *Manager[T]) BatchDeleteTokensByGroupIDs(groupIDs []uint) ErrorCode {
 	// 检查用户组是否存在
 	for _, groupID := range groupIDs {
 		if _, exists := tm.groups[groupID]; !exists {
-			return E_GroupNotFound
+			return errors.New(getErrorMessage(tm.config.Language, "group_not_found"))
 		}
 	}
 
@@ -132,14 +132,14 @@ func (tm *Manager[T]) BatchDeleteTokensByGroupIDs(groupIDs []uint) ErrorCode {
 		tm.stats.LastUpdateTime = time.Now()
 	}
 
-	return E_Success
+	return nil
 }
 
 /**
  * BatchDeleteExpiredTokens 批量删除过期token
- * @returns {ErrorCode} 操作结果错误码
+ * @returns {error} 操作结果错误信息
  */
-func (tm *Manager[T]) BatchDeleteExpiredTokens() ErrorCode {
+func (tm *Manager[T]) BatchDeleteExpiredTokens() error {
 	tm.lock()
 	defer tm.unlock()
 
@@ -166,15 +166,15 @@ func (tm *Manager[T]) BatchDeleteExpiredTokens() ErrorCode {
 		tm.stats.LastUpdateTime = time.Now()
 	}
 
-	return E_Success
+	return nil
 }
 
 /**
  * GetTokensByUserID 获取指定用户的所有token
  * @param {uint} userID 用户ID
- * @returns {[]*Token[T]} token列表
+ * @returns {[]*models.Token[T]} token列表
  */
-func (tm *Manager[T]) GetTokensByUserID(userID uint) []*Token[T] {
+func (tm *Manager[T]) GetTokensByUserID(userID uint) []*models.Token[T] {
 	if userID == 0 {
 		return nil
 	}
@@ -182,7 +182,7 @@ func (tm *Manager[T]) GetTokensByUserID(userID uint) []*Token[T] {
 	tm.rLock()
 	defer tm.rUnlock()
 
-	tokens := make([]*Token[T], 0)
+	tokens := make([]*models.Token[T], 0)
 	for _, token := range tm.tokens {
 		if token.UserID == userID {
 			tokens = append(tokens, token)
@@ -195,9 +195,9 @@ func (tm *Manager[T]) GetTokensByUserID(userID uint) []*Token[T] {
 /**
  * GetTokensByGroupID 获取指定用户组的所有token
  * @param {uint} groupID 用户组ID
- * @returns {[]*Token[T]} token列表
+ * @returns {[]*models.Token[T]} token列表
  */
-func (tm *Manager[T]) GetTokensByGroupID(groupID uint) []*Token[T] {
+func (tm *Manager[T]) GetTokensByGroupID(groupID uint) []*models.Token[T] {
 	if groupID == 0 {
 		return nil
 	}
@@ -210,7 +210,7 @@ func (tm *Manager[T]) GetTokensByGroupID(groupID uint) []*Token[T] {
 		return nil
 	}
 
-	tokens := make([]*Token[T], 0)
+	tokens := make([]*models.Token[T], 0)
 	for _, token := range tm.tokens {
 		if token.GroupID == groupID {
 			tokens = append(tokens, token)

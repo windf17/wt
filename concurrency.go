@@ -131,7 +131,9 @@ func (wp *WorkerPool) Start() {
 func (wp *WorkerPool) Submit(job func()) bool {
 	defer func() {
 		if r := recover(); r != nil {
-			// 捕获向已关闭channel发送数据的panic
+			// 记录错误日志而不是静默忽略
+			// 注意：在生产环境中应该使用适当的日志库
+			println("WorkerPool submit panic:", r)
 		}
 	}()
 
@@ -167,8 +169,23 @@ func (wp *WorkerPool) Stop() {
 
 	// 先关闭jobQueue，让worker自然退出
 	close(wp.jobQueue)
-	// 等待所有worker完成
-	wp.wg.Wait()
+	
+	// 使用超时机制确保所有goroutine正确退出
+	done := make(chan struct{})
+	go func() {
+		wp.wg.Wait()
+		close(done)
+	}()
+	
+	// 等待最多30秒
+	select {
+	case <-done:
+		// 所有goroutine正常退出
+	case <-time.After(30 * time.Second):
+		// 超时，记录警告
+		println("Warning: WorkerPool stop timeout, some goroutines may not have exited properly")
+	}
+	
 	// 最后取消context
 	wp.cancel()
 }

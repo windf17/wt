@@ -2,13 +2,15 @@ package wt
 
 import (
 	"time"
+
+	"github.com/windf17/wt/models"
 )
 
 // GetStats 获取token统计信息
-func (tm *Manager[T]) GetStats() Stats {
+func (tm *Manager[T]) GetStats() models.Stats {
 	tm.rLock()
 	defer tm.rUnlock()
-	statsCopy := Stats{
+	statsCopy := models.Stats{
 		LastUpdateTime: tm.stats.LastUpdateTime,
 		TotalTokens:    tm.stats.TotalTokens,
 		ActiveTokens:   tm.stats.ActiveTokens,

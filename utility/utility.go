@@ -69,9 +69,9 @@ func ParsePathToSegments(path string) []string {
 }
 
 /**
- * HasPermission 检查API权限 - wt核心权限验证算法
+ * HasPermission 检查API权限 - WToken核心权限验证算法
  *
- * 这是wt系统的核心权限验证函数，实现了基于路径前缀匹配的权限控制算法。
+ * 这是WToken系统的核心权限验证函数，实现了基于路径前缀匹配的权限控制算法。
  * 该算法采用"最长匹配优先"原则，确保权限控制的精确性和安全性。
  *
  * @param {string} urlStr 请求的URL字符串（支持完整URL，会自动解析路径部分）

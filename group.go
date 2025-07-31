@@ -1,6 +1,7 @@
 package wt
 
 import (
+	"errors"
 	"sort"
 	"strings"
 
@@ -9,41 +10,41 @@ import (
 )
 
 // GetGroup 获取并验证用户组配置
-func (tm *Manager[T]) GetGroup(groupID uint) (*models.Group, ErrorCode) {
+func (tm *Manager[T]) GetGroup(groupID uint) (*models.Group, error) {
 	tm.rLock()
 	defer tm.rUnlock()
 	g := tm.groups[groupID]
 	if g == nil {
-		return nil, (E_GroupNotFound)
+		return nil, errors.New(getErrorMessage(tm.config.Language, "group_not_found"))
 	}
 
-	return g, E_Success
+	return g, nil
 }
 
 // AddGroup 新增用户组
-func (tm *Manager[T]) AddGroup(raw *models.GroupRaw) ErrorCode {
+func (tm *Manager[T]) AddGroup(raw *models.GroupRaw) error {
 	if raw.ID == 0 {
-		return (E_GroupInvalid)
+		return errors.New(getErrorMessage(tm.config.Language, "group_invalid"))
 	}
 	tm.lock()
 	defer tm.unlock()
 	group := ConvGroup(*raw, tm.config.Delimiter)
 	tm.groups[raw.ID] = group
 
-	return E_Success
+	return nil
 }
 
 // DelGroup 删除指定用户组及其所有token
-func (tm *Manager[T]) DelGroup(groupID uint) ErrorCode {
+func (tm *Manager[T]) DelGroup(groupID uint) error {
 	if groupID == 0 {
-		return (E_GroupNotFound)
+		return errors.New(getErrorMessage(tm.config.Language, "group_not_found"))
 	}
 	tm.lock()
 	defer tm.unlock()
 
 	// 检查用户组是否存在
 	if _, exists := tm.groups[groupID]; !exists {
-		return (E_GroupNotFound)
+		return errors.New(getErrorMessage(tm.config.Language, "group_not_found"))
 	}
 
 	// 删除该用户组的所有token
@@ -62,37 +63,37 @@ func (tm *Manager[T]) DelGroup(groupID uint) ErrorCode {
 		tm.updateStatsCount(-deleteCount, true)
 	}
 
-	return E_Success
+	return nil
 }
 
 // UpdateGroup 更新用户组
-func (tm *Manager[T]) UpdateGroup(groupID uint, raw *models.GroupRaw) ErrorCode {
+func (tm *Manager[T]) UpdateGroup(groupID uint, raw *models.GroupRaw) error {
 
 	if raw.ID == 0 {
-		return (E_GroupInvalid)
+		return errors.New(getErrorMessage(tm.config.Language, "group_invalid"))
 	}
 	tm.lock()
 	defer tm.unlock()
 	_, exists := tm.groups[groupID]
 	if !exists {
-		return (E_GroupNotFound)
+		return errors.New(getErrorMessage(tm.config.Language, "group_not_found"))
 	}
 	group := ConvGroup(*raw, tm.config.Delimiter)
 	tm.groups[raw.ID] = group
 
-	return E_Success
+	return nil
 }
 
 /**
  * UpdateAllGroup 批量更新所有用户组
  * @param {[]models.GroupRaw} groups 用户组原始数据列表
- * @returns {ErrorCode} 操作结果错误码
+ * @returns {error} 操作结果错误信息
  */
-func (tm *Manager[T]) UpdateAllGroup(groups []models.GroupRaw) ErrorCode {
+func (tm *Manager[T]) UpdateAllGroup(groups []models.GroupRaw) error {
 	// 验证所有用户组配置
 	for _, group := range groups {
 		if group.ID == 0 {
-			return E_GroupInvalid
+			return errors.New(getErrorMessage(tm.config.Language, "group_invalid"))
 		}
 	}
 
@@ -108,7 +109,7 @@ func (tm *Manager[T]) UpdateAllGroup(groups []models.GroupRaw) ErrorCode {
 		tm.groups[raw.ID] = group
 	}
 
-	return E_Success
+	return nil
 }
 
 /**

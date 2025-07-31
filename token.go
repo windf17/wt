@@ -3,15 +3,18 @@ package wt
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"time"
+
+	"github.com/windf17/wt/models"
 )
 
 /**
  * GetToken 获取token数据
  * @param {string} key token键
- * @returns {*Token[T], ErrorCode} token数据和错误码
+ * @returns {*models.Token[T], error} token数据和错误信息
  */
-func (tm *Manager[T]) GetToken(key string) (*Token[T], ErrorCode) {
+func (tm *Manager[T]) GetToken(key string) (*models.Token[T], error) {
 	// 性能监控
 
 	// 先用读锁检查token是否存在
@@ -19,7 +22,7 @@ func (tm *Manager[T]) GetToken(key string) (*Token[T], ErrorCode) {
 	t := tm.tokens[key]
 	if t == nil {
 		tm.rUnlock()
-		return nil, (E_InvalidToken)
+		return nil, errors.New(getErrorMessage(tm.config.Language, "invalid_token"))
 	}
 
 	// 检查是否过期
@@ -28,7 +31,7 @@ func (tm *Manager[T]) GetToken(key string) (*Token[T], ErrorCode) {
 
 		// 使用单独的方法处理过期token删除，避免锁升级死锁
 		tm.removeExpiredTokenSafe(key)
-		return nil, (E_TokenExpired)
+		return nil, errors.New(getErrorMessage(tm.config.Language, "token_expired"))
 	}
 
 	// 创建token副本，避免返回指针导致的并发问题
@@ -45,7 +48,7 @@ func (tm *Manager[T]) GetToken(key string) (*Token[T], ErrorCode) {
 	}
 	tm.unlock()
 
-	return &tokenCopy, E_Success
+	return &tokenCopy, nil
 }
 
 /**
@@ -53,17 +56,17 @@ func (tm *Manager[T]) GetToken(key string) (*Token[T], ErrorCode) {
  * @param {uint} userID 用户ID
  * @param {uint} groupID 用户组ID
  * @param {string} clientIp 客户端IP地址
- * @returns {string, ErrorCode} token字符串和错误码
+ * @returns {string, error} token字符串和错误信息
  */
-func (tm *Manager[T]) AddToken(userID uint, groupID uint, clientIp string) (string, ErrorCode) {
+func (tm *Manager[T]) AddToken(userID uint, groupID uint, clientIp string) (string, error) {
 	if userID < 1 {
-		return "", E_UserInvalid
+		return "", errors.New(getErrorMessage(tm.config.Language, "user_invalid"))
 	}
 	if groupID < 1 {
-		return "", E_GroupInvalid
+		return "", errors.New(getErrorMessage(tm.config.Language, "group_invalid"))
 	}
 	if err := ValidateIPAddress(clientIp); err != nil {
-		return "", E_InvalidIP
+		return "", errors.New(getErrorMessage(tm.config.Language, "invalid_ip"))
 	}
 
 	// 首先检查用户组是否存在
@@ -71,7 +74,7 @@ func (tm *Manager[T]) AddToken(userID uint, groupID uint, clientIp string) (stri
 	g := tm.groups[groupID]
 	if g == nil {
 		tm.rUnlock()
-		return "", E_GroupNotFound
+		return "", errors.New(getErrorMessage(tm.config.Language, "group_not_found"))
 	}
 	tm.rUnlock()
 
@@ -110,13 +113,13 @@ func (tm *Manager[T]) AddToken(userID uint, groupID uint, clientIp string) (stri
 	// 生成token
 	tokenKey, er := tm.GenerateToken()
 	if er != nil {
-		return "", E_TokenGenerate
+		return "", errors.New(getErrorMessage(tm.config.Language, "token_generate"))
 	}
 
 	// 创建用户tokens数据
 	now := time.Now()
 	var zero T
-	tokenData := Token[T]{
+	tokenData := models.Token[T]{
 		UserID:         userID,
 		GroupID:        groupID,
 		LoginTime:      now,
@@ -144,20 +147,20 @@ func (tm *Manager[T]) AddToken(userID uint, groupID uint, clientIp string) (stri
 	tm.stats.ActiveTokens += 1
 	tm.stats.LastUpdateTime = time.Now()
 
-	return tokenKey, E_Success
+	return tokenKey, nil
 }
 
 /**
  * DelToken 删除指定的token
  * @param {string} key token键
- * @returns {ErrorCode} 操作结果错误码
+ * @returns {error} 操作结果错误信息
  */
-func (tm *Manager[T]) DelToken(key string) ErrorCode {
+func (tm *Manager[T]) DelToken(key string) error {
 	tm.lock()
 	defer tm.unlock()
 	token, exists := tm.tokens[key]
 	if !exists {
-		return (E_InvalidToken)
+		return errors.New(getErrorMessage(tm.config.Language, "invalid_token"))
 	}
 
 	// 检查token是否过期
@@ -175,17 +178,17 @@ func (tm *Manager[T]) DelToken(key string) ErrorCode {
 		tm.stats.LastUpdateTime = time.Now()
 	}
 
-	return E_Success
+	return nil
 }
 
 /**
  * DelTokensByUserID 删除指定用户的所有token
  * @param {uint} userID 用户ID
- * @returns {ErrorCode} 操作结果错误码
+ * @returns {error} 操作结果错误信息
  */
-func (tm *Manager[T]) DelTokensByUserID(userID uint) ErrorCode {
+func (tm *Manager[T]) DelTokensByUserID(userID uint) error {
 	if userID == 0 {
-		return (E_UserInvalid)
+		return errors.New(getErrorMessage(tm.config.Language, "user_invalid"))
 	}
 	tm.lock()
 	defer tm.unlock()
@@ -213,23 +216,23 @@ func (tm *Manager[T]) DelTokensByUserID(userID uint) ErrorCode {
 		tm.stats.TotalTokens -= expiredDeleted
 		tm.stats.LastUpdateTime = time.Now()
 	}
-	return E_Success
+	return nil
 }
 
 /**
  * DelTokensByGroupID 删除指定用户组的所有token
  * @param {uint} groupID 用户组ID
- * @returns {ErrorCode} 操作结果错误码
+ * @returns {error} 操作结果错误信息
  */
-func (tm *Manager[T]) DelTokensByGroupID(groupID uint) ErrorCode {
+func (tm *Manager[T]) DelTokensByGroupID(groupID uint) error {
 	if groupID == 0 {
-		return (E_GroupInvalid)
+		return errors.New(getErrorMessage(tm.config.Language, "group_invalid"))
 	}
 	tm.lock()
 	defer tm.unlock()
 	// 检查用户组id是不是存在
 	if _, exists := tm.groups[groupID]; !exists {
-		return (E_GroupNotFound)
+		return errors.New(getErrorMessage(tm.config.Language, "group_not_found"))
 	}
 	expiredDeleted := 0
 	activeDeleted := 0
@@ -255,23 +258,23 @@ func (tm *Manager[T]) DelTokensByGroupID(groupID uint) ErrorCode {
 		tm.stats.TotalTokens -= expiredDeleted
 		tm.stats.LastUpdateTime = time.Now()
 	}
-	return E_Success
+	return nil
 }
 
 // UpdateToken 更新指定的token
-func (tm *Manager[T]) UpdateToken(key string, token *Token[T]) ErrorCode {
+func (tm *Manager[T]) UpdateToken(key string, token *models.Token[T]) error {
 	tm.lock()
 	defer tm.unlock()
 	if _, exists := tm.tokens[key]; !exists {
-		return (E_InvalidToken)
+		return errors.New(getErrorMessage(tm.config.Language, "invalid_token"))
 	}
 	if token == nil {
-		return (E_InvalidToken)
+		return errors.New(getErrorMessage(tm.config.Language, "invalid_token"))
 	}
 	token.LastAccessTime = time.Now()
 	tm.tokens[key] = token
 
-	return E_Success
+	return nil
 }
 
 /**

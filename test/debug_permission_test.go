@@ -1,6 +1,7 @@
 package test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/windf17/wt"
@@ -12,12 +13,12 @@ import (
  */
 func TestDebugPermission(t *testing.T) {
 	// 初始化配置
-	config := &wt.ConfigRaw{
+	config := &models.ConfigRaw{
 
 		MaxTokens:      10,
 		Delimiter:      ",",
 		TokenRenewTime: "30m",
-		Language:       wt.LangChinese,
+		Language:       "zh",
 	}
 
 	groups := []models.GroupRaw{
@@ -32,24 +33,27 @@ func TestDebugPermission(t *testing.T) {
 	}
 
 	// 初始化token管理器
-	tm := wt.InitTM[map[string]any](config, groups, nil)
+	tm, err := wt.InitTM[map[string]any](*config, groups)
+	if err != nil {
+		t.Fatalf("Failed to initialize token manager: %v", err)
+	}
 	if tm == nil {
 		t.Fatalf("Failed to initialize token manager")
 	}
-	defer tm.Close()
+
 
 	// 创建用户token
-	userToken, errCode := tm.AddToken(2, 2, "192.168.1.102")
-	if errCode != wt.E_Success {
-		t.Errorf("Failed to add user token: %v", errCode)
+	userToken, err := tm.AddToken(2, 2, "192.168.1.102")
+	if err != nil {
+		t.Errorf("Failed to add user token: %v", err)
 	}
 
 	t.Logf("Created token: %s", userToken)
 
 	// 获取用户组信息
-	group, errCode := tm.GetGroup(2)
-	if errCode != wt.E_Success {
-		t.Errorf("Failed to get group: %v", errCode)
+	group, err := tm.GetGroup(2)
+	if err != nil {
+		t.Errorf("Failed to get group: %v", err)
 		return
 	}
 
@@ -61,20 +65,26 @@ func TestDebugPermission(t *testing.T) {
 	// 测试API权限
 	testCases := []struct {
 		api      string
-		expected wt.ErrorCode
+		expected error
 		desc     string
 	}{
-		{"/api/user/profile", wt.E_Success, "exact match /api/user/profile"},
-		{"/api/user/admin", wt.E_Unauthorized, "denied /api/user/admin"},
-		{"/api/admin", wt.E_Unauthorized, "not allowed /api/admin"},
+		{"/api/user/profile", nil, "exact match /api/user/profile"},
+		{"api/user/admin", errors.New("未授权访问"), "denied /api/user/admin"},
+		{"/api/admin", errors.New("未授权访问"), "not allowed /api/admin"},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			errCode := tm.Auth(userToken, "192.168.1.102", tc.api)
-			t.Logf("API: %s, Expected: %v, Got: %v", tc.api, tc.expected, errCode)
-			if errCode != tc.expected {
-				t.Errorf("API %s: expected %v, got %v", tc.api, tc.expected, errCode)
+			err := tm.Auth(userToken, "192.168.1.102", tc.api)
+			t.Logf("API: %s, Expected: %v, Got: %v", tc.api, tc.expected, err)
+			if tc.expected == nil {
+				if err != nil {
+					t.Errorf("API %s: expected success, got %v", tc.api, err)
+				}
+			} else {
+				if err == nil || err.Error() != tc.expected.Error() {
+					t.Errorf("API %s: expected %v, got %v", tc.api, tc.expected, err)
+				}
 			}
 		})
 	}

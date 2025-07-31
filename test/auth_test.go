@@ -209,23 +209,25 @@ func TestHasPermissionWithApiRules(t *testing.T) {
  */
 func TestAuthWithNoGroups(t *testing.T) {
 	// 配置
-	config := &wt.ConfigRaw{
+	config := &models.ConfigRaw{
 		Language:       "zh",
 		MaxTokens:      100,
 		Delimiter:      ",",
 		TokenRenewTime: "1h",
 	}
 
-	// 初始化token管理器，groups参数为nil
-	tm := wt.InitTM[map[string]any](config, nil, nil)
-	defer tm.Close()
+	// 初始化token管理器，groups参数为空数组
+	tm, err := wt.InitTM[map[string]any](*config, []models.GroupRaw{})
+	if err != nil {
+		t.Fatalf("Failed to initialize token manager: %v", err)
+	}
 
 	// 测试1: 验证没有用户组时，Auth应该直接返回成功
 	t.Run("AuthWithoutToken", func(t *testing.T) {
 		// 直接调用Auth，不需要有效的token
-		errCode := tm.Auth("any_token", "192.168.1.1", "/api/test")
-		if errCode != wt.E_Success {
-			t.Errorf("Expected E_Success when no groups configured, got %v", errCode)
+		err := tm.Auth("any_token", "192.168.1.1", "/api/test")
+		if err != nil {
+			t.Errorf("Expected nil when no groups configured, got %v", err)
 		}
 	})
 
@@ -234,9 +236,9 @@ func TestAuthWithNoGroups(t *testing.T) {
 		// 当没有groups配置时，Auth应该直接返回成功
 		// 使用符合格式要求的token（至少32个字符的Base64格式）
 		validToken := "dGVzdF90b2tlbl9mb3JfYXV0aF90ZXN0aW5nX3B1cnBvc2U="
-		errCode := tm.Auth(validToken, "192.168.1.1", "/api/test")
-		if errCode != wt.E_Success {
-			t.Errorf("Expected E_Success when no groups configured, got %v", errCode)
+		err := tm.Auth(validToken, "192.168.1.1", "/api/test")
+		if err != nil {
+			t.Errorf("Expected nil when no groups configured, got %v", err)
 		}
 	})
 }
@@ -245,7 +247,7 @@ func TestAuthWithNoGroups(t *testing.T) {
  * TestAuthWithEmptyGroups 测试空用户组数组的情况
  */
 func TestAuthWithEmptyGroups(t *testing.T) {
-	config := &wt.ConfigRaw{
+	config := &models.ConfigRaw{
 		Language:       "zh",
 		MaxTokens:      100,
 		Delimiter:      ",",
@@ -254,13 +256,15 @@ func TestAuthWithEmptyGroups(t *testing.T) {
 
 	// 传入空的groups数组
 	emptyGroups := []models.GroupRaw{}
-	tm := wt.InitTM[map[string]any](config, emptyGroups, nil)
-	defer tm.Close()
+	tm, err := wt.InitTM[map[string]any](*config, emptyGroups)
+	if err != nil {
+		t.Fatalf("Failed to initialize token manager: %v", err)
+	}
 
 	// 验证空用户组时的行为
-	errCode := tm.Auth("any_token", "192.168.1.1", "/api/test")
-	if errCode != wt.E_Success {
-		t.Errorf("Expected E_Success when empty groups configured, got %v", errCode)
+	err = tm.Auth("any_token", "192.168.1.1", "/api/test")
+	if err != nil {
+		t.Errorf("Expected nil when empty groups configured, got %v", err)
 	}
 }
 
@@ -268,7 +272,7 @@ func TestAuthWithEmptyGroups(t *testing.T) {
  * TestAuthWithGroups 测试有用户组配置时的正常鉴权行为
  */
 func TestAuthWithGroups(t *testing.T) {
-	config := &wt.ConfigRaw{
+	config := &models.ConfigRaw{
 		Language:       "zh",
 		MaxTokens:      100,
 		Delimiter:      ",",
@@ -286,37 +290,39 @@ func TestAuthWithGroups(t *testing.T) {
 		},
 	}
 
-	tm := wt.InitTM[map[string]any](config, groups, nil)
-	defer tm.Close()
+	tm, err := wt.InitTM[string](*config, groups)
+	if err != nil {
+		t.Errorf("Failed to initialize token manager: %v", err)
+	}
 
 	// 添加一个有效的token
 	tokenKey, err := tm.AddToken(1, 1, "192.168.1.1")
-	if err != wt.E_Success {
+	if err != nil {
 		t.Fatalf("Failed to add token: %v", err)
 	}
 
 	// 测试有效token访问允许的API
-	errCode := tm.Auth(tokenKey, "192.168.1.1", "/api/user/profile")
-	if errCode != wt.E_Success {
-		t.Errorf("Expected E_Success for allowed API, got %v", errCode)
+	err = tm.Auth(tokenKey, "192.168.1.1", "/api/user/profile")
+	if err != nil {
+		t.Errorf("Expected nil for allowed API, got %v", err)
 	}
 
 	// 测试有效token访问被拒绝的API
-	errCode = tm.Auth(tokenKey, "192.168.1.1", "/api/admin/delete")
-	if errCode == wt.E_Success {
-		t.Error("Expected error for denied API, got E_Success")
+	err = tm.Auth(tokenKey, "192.168.1.1", "/api/admin/delete")
+	if err == nil {
+		t.Error("Expected error for denied API, got nil")
 	}
 
 	// 测试访问不在任何规则中的API
-	errCode = tm.Auth(tokenKey, "192.168.1.1", "/api/other/test")
-	if errCode == wt.E_Success {
-		t.Error("Expected error for unmatched API, got E_Success")
+	err = tm.Auth(tokenKey, "192.168.1.1", "/api/other/test")
+	if err == nil {
+		t.Error("Expected error for unmatched API, got nil")
 	}
 
 	// 测试无效token
-	errCode = tm.Auth("invalid_token", "192.168.1.1", "/api/user/profile")
-	if errCode == wt.E_Success {
-		t.Error("Expected error for invalid token, got E_Success")
+	err = tm.Auth("invalid_token", "192.168.1.1", "/api/user/profile")
+	if err == nil {
+		t.Error("Expected error for invalid token, got nil")
 	}
 }
 
@@ -326,7 +332,7 @@ func TestAuthWithGroups(t *testing.T) {
  */
 func TestBatchAuth(t *testing.T) {
 	// 创建配置
-	config := &wt.ConfigRaw{
+	config := &models.ConfigRaw{
 		Language:       "zh",
 		MaxTokens:      1000,
 		Delimiter:      ",",
@@ -346,19 +352,21 @@ func TestBatchAuth(t *testing.T) {
 	}
 
 	// 初始化token管理器
-	tm := wt.InitTM[map[string]any](config, groups, nil)
-	defer tm.Close()
+	tm, err := wt.InitTM[map[string]any](*config, groups)
+	if err != nil {
+		t.Fatalf("Failed to initialize token manager: %v", err)
+	}
 
 	// 添加token
-	tokenKey, errCode := tm.AddToken(1, 1, "192.168.1.1")
-	if errCode != wt.E_Success {
-		t.Fatalf("Failed to add token: %v", errCode)
+	tokenKey, err := tm.AddToken(1, 1, "192.168.1.1")
+	if err != nil {
+		t.Fatalf("Failed to add token: %v", err)
 	}
 
 	// 测试批量权限检查
 	apis := []string{
 		"/api/user/del",
-		"/api/user/add", 
+		"/api/user/add",
 		"/api/user/update",
 		"/api/user/get",
 		"/api/admin/delete",

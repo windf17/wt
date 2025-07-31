@@ -1,6 +1,7 @@
 package wt
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -13,41 +14,36 @@ import (
  * @param {string} key token字符串
  * @param {string} clientIp 客户端IP地址
  * @param {string} api 请求的API地址
- * @returns {ErrorCode} 鉴权结果
+ * @returns {error} 鉴权结果
  */
-func (tm *Manager[T]) Auth(key string, clientIp string, api string) ErrorCode {
+func (tm *Manager[T]) Auth(key string, clientIp string, api string) error {
 	// 输入参数验证
 	if strings.TrimSpace(key) == "" {
-		return E_InvalidToken // 无效Token
+		return errors.New(getErrorMessage(tm.config.Language, "invalid_token")) // 无效Token
 	}
 	if clientIp == "" {
-		return E_InvalidIP // 无效IP
+		return errors.New(getErrorMessage(tm.config.Language, "invalid_ip")) // 无效IP
 	}
 	// 检查是否启用了鉴权功能（如果没有配置任何用户组，则禁用鉴权）
 	tm.rLock()
 	if len(tm.groups) == 0 {
 		tm.rUnlock()
 		// 没有配置用户组，跳过权限验证，直接返回成功
-		return E_Success
+		return nil
 	}
 
 	// 第一阶段：Token验证（防止盗用）
 	t, exists := tm.tokens[key]
 	if !exists {
 		tm.rUnlock()
-		return E_InvalidToken // 无效Token
+		return errors.New(getErrorMessage(tm.config.Language, "invalid_token")) // 无效Token
 	}
 	if t == nil {
 		// token的key存在但值为nil，需要删除该token
 		tm.rUnlock()
-		// 升级为写锁进行删除操作
-		tm.lock()
-		// 重新检查token是否仍然存在且为nil
-		if currentToken, exists := tm.tokens[key]; exists && currentToken == nil {
-			delete(tm.tokens, key)
-		}
-		tm.unlock()
-		return E_InvalidToken // 无效Token
+		// 使用专门的安全删除方法，避免锁升级死锁
+		tm.DelToken(key)
+		return errors.New(getErrorMessage(tm.config.Language, "invalid_token"))
 	}
 	if t.IsExpired() {
 		// token已过期，需要删除该token
@@ -59,32 +55,32 @@ func (tm *Manager[T]) Auth(key string, clientIp string, api string) ErrorCode {
 			delete(tm.tokens, key)
 		}
 		tm.unlock()
-		return E_TokenExpired // Token过期，拒绝访问
+		return errors.New(getErrorMessage(tm.config.Language, "token_expired")) // Token过期，拒绝访问
 	}
 
 	// IP验证：若token有效但是ip不匹配，则判断为token被盗用
 	if t.IP != clientIp {
 		tm.rUnlock()
-		return E_Forbidden // IP不匹配，token被盗用，禁止访问
+		return errors.New(getErrorMessage(tm.config.Language, "forbidden")) // IP不匹配，token被盗用，禁止访问
 	}
 
 	// 获取用户组配置
 	g := tm.groups[t.GroupID]
 	if g == nil {
 		tm.rUnlock()
-		return E_Forbidden // 用户组不存在，拒绝访问
+		return errors.New(getErrorMessage(tm.config.Language, "forbidden")) // 用户组不存在，拒绝访问
 	}
 
 	// 第二阶段：API权限验证
 	// 如果用户组没有配置任何API规则，则拒绝访问
 	if len(g.ApiRules) == 0 {
 		tm.rUnlock()
-		return E_Unauthorized // 无权访问
+		return errors.New(getErrorMessage(tm.config.Language, "unauthorized")) // 无权访问
 	}
 	// 检查API路径权限
 	if !utility.HasPermission(api, g.ApiRules) {
 		tm.rUnlock()
-		return E_Unauthorized // 无权访问
+		return errors.New(getErrorMessage(tm.config.Language, "unauthorized")) // 无权访问
 	}
 
 	// 第三阶段：更新最后访问时间
@@ -98,11 +94,11 @@ func (tm *Manager[T]) Auth(key string, clientIp string, api string) ErrorCode {
 		currentToken.LastAccessTime = time.Now()
 		tm.tokens[key] = currentToken
 		tm.unlock()
-		return E_Success
+		return nil
 	} else {
 		// Token在锁切换期间被删除或过期
 		tm.unlock()
-		return E_Forbidden // Token无效，拒绝访问
+		return errors.New(getErrorMessage(tm.config.Language, "forbidden")) // Token无效，拒绝访问
 	}
 }
 
@@ -122,8 +118,8 @@ func (tm *Manager[T]) BatchAuth(key string, clientIp string, apis []string) []bo
 	for i, api := range apis {
 		// 调用单个API的权限检查方法
 		authResult := tm.Auth(key, clientIp, api)
-		// 只有返回E_Success时才表示有权限
-		results[i] = (authResult == E_Success)
+		// 只有返回nil时才表示有权限
+		results[i] = (authResult == nil)
 	}
 
 	return results

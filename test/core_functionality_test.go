@@ -14,54 +14,57 @@ import (
  */
 func TestConfigValidation(t *testing.T) {
 	t.Run("ValidConfig", func(t *testing.T) {
-		config := &wt.ConfigRaw{
+		config := &models.ConfigRaw{
 
-			MaxTokens:      1000,
-			Delimiter:      ",",
-			TokenRenewTime: "1h",
-			Language:       wt.LangChinese,
-		}
+		MaxTokens:      1000,
+		Delimiter:      ",",
+		TokenRenewTime: "1h",
+		Language:       "zh",
+	}
 
 		// 测试配置是否能正常初始化
-		tm := wt.InitTM[string](config, nil, nil)
+		tm, err := wt.InitTM[string](*config, []models.GroupRaw{})
+		if err != nil {
+			t.Errorf("Valid config should initialize successfully, got error: %v", err)
+		}
 		if tm == nil {
 			t.Error("Valid config should initialize successfully")
 		} else {
-			tm.Close()
+
 		}
 	})
 
 	t.Run("InvalidMaxTokens", func(t *testing.T) {
-		config := &wt.ConfigRaw{
-			MaxTokens:      0, // 无效值
+		config := &models.ConfigRaw{
+			MaxTokens:      -1, // 无效值（负数）
 			Delimiter:      ",",
 			TokenRenewTime: "1h",
-			Language:       wt.LangChinese,
+			Language:       "zh",
 		}
 
 		// 测试无效配置会返回nil（统一错误处理）
-		tm := wt.InitTM[string](config, nil, nil)
+		tm, _ := wt.InitTM[string](*config, []models.GroupRaw{})
 		if tm != nil {
 			t.Error("Expected nil for invalid config, but initialization succeeded")
-			tm.Close()
+
 		} else {
 			t.Log("Invalid config correctly returned nil")
 		}
 	})
 
 	t.Run("EmptyDelimiter", func(t *testing.T) {
-		config := &wt.ConfigRaw{
+		config := &models.ConfigRaw{
 			MaxTokens:      1000,
 			Delimiter:      "", // 空分隔符
 			TokenRenewTime: "1h",
-			Language:       wt.LangChinese,
+			Language:       "zh",
 		}
 
 		// 测试空分隔符配置会返回nil（统一错误处理）
-		tm := wt.InitTM[string](config, nil, nil)
+		tm, _ := wt.InitTM[string](*config, []models.GroupRaw{})
 		if tm != nil {
 			t.Error("Expected nil for empty delimiter config, but initialization succeeded")
-			tm.Close()
+
 		} else {
 			t.Log("Empty delimiter config correctly returned nil")
 		}
@@ -77,16 +80,16 @@ func TestCompleteWorkflow(t *testing.T) {
 	defer os.Remove(tempFile)
 
 	// 初始化配置
-	config := &wt.ConfigRaw{
+	config := &models.ConfigRaw{
 
 		MaxTokens:      10,
 		Delimiter:      ",",
 		TokenRenewTime: "30m",
-		Language:       wt.LangChinese,
+		Language:       "zh",
 	}
 
 	// 验证配置
-	if err := wt.ValidateConfig(config); err != nil {
+	if err := wt.ValidateConfig(*config); err != nil {
 		t.Fatalf("Config validation failed: %v", err)
 	}
 
@@ -117,7 +120,10 @@ func TestCompleteWorkflow(t *testing.T) {
 	}
 
 	// 初始化token管理器
-	tm := wt.InitTM[map[string]any](config, groups, nil)
+	tm, err := wt.InitTM[map[string]any](*config, groups)
+	if err != nil {
+		t.Fatalf("Failed to initialize token manager: %v", err)
+	}
 	if tm == nil {
 		t.Fatalf("Failed to initialize token manager")
 	}
@@ -125,9 +131,9 @@ func TestCompleteWorkflow(t *testing.T) {
 	// 测试用户组管理
 	t.Run("GroupManagement", func(t *testing.T) {
 		// 获取用户组
-		group, errCode := tm.GetGroup(1)
-		if errCode != wt.E_Success {
-			t.Errorf("Failed to get group: %v", errCode)
+		group, err := tm.GetGroup(1)
+		if err != nil {
+			t.Errorf("Failed to get group: %v", err)
 		}
 		if group.Name != "admin" {
 			t.Errorf("Expected group name 'admin', got '%s'", group.Name)
@@ -142,15 +148,15 @@ func TestCompleteWorkflow(t *testing.T) {
 			TokenExpire:        "30m",
 			AllowMultipleLogin: 1,
 		}
-		errCode = tm.AddGroup(newGroup)
-		if errCode != wt.E_Success {
-			t.Errorf("Failed to add group: %v", errCode)
+		err = tm.AddGroup(newGroup)
+		if err != nil {
+			t.Errorf("Failed to add group: %v", err)
 		}
 
 		// 验证新用户组
-		addedGroup, errCode := tm.GetGroup(3)
-		if errCode != wt.E_Success {
-			t.Errorf("Failed to get added group: %v", errCode)
+		addedGroup, err := tm.GetGroup(3)
+		if err != nil {
+			t.Errorf("Failed to get added group: %v", err)
 		}
 		if addedGroup.Name != "guest" {
 			t.Errorf("Expected group name 'guest', got '%s'", addedGroup.Name)
@@ -160,16 +166,16 @@ func TestCompleteWorkflow(t *testing.T) {
 	// 测试token管理
 	t.Run("TokenManagement", func(t *testing.T) {
 		// 添加token
-		token1, errCode := tm.AddToken(1, 1, "192.168.1.100")
-		if errCode != wt.E_Success {
-			t.Errorf("Failed to add token: %v", errCode)
+		token1, err := tm.AddToken(1, 1, "192.168.1.100")
+		if err != nil {
+			t.Errorf("Failed to add token: %v", err)
 			return
 		}
 
 		// 验证token
-		tokenData, errCode := tm.GetToken(token1)
-		if errCode != wt.E_Success {
-			t.Errorf("Failed to get token: %v", errCode)
+		tokenData, err := tm.GetToken(token1)
+		if err != nil {
+			t.Errorf("Failed to get token: %v", err)
 			return
 		}
 		if tokenData.UserID != 1 {
@@ -180,9 +186,9 @@ func TestCompleteWorkflow(t *testing.T) {
 		}
 
 		// 设置用户数据前先验证token1是否有效
-		_, errCode = tm.GetToken(token1)
-		if errCode != wt.E_Success {
-			t.Errorf("Token1 is invalid before SetUserData: %v", errCode)
+		_, err = tm.GetToken(token1)
+		if err != nil {
+			t.Errorf("Token1 is invalid before SetUserData: %v", err)
 			return
 		}
 
@@ -195,16 +201,16 @@ func TestCompleteWorkflow(t *testing.T) {
 		// 打印token1的详细信息用于调试
 		t.Logf("Token1: %s, Length: %d", token1, len(token1))
 
-		errCode = tm.SetUserData(token1, userData)
-		if errCode != wt.E_Success {
-			t.Errorf("Failed to set user data: %v (token: %s)", errCode, token1)
+		err = tm.SetUserData(token1, userData)
+		if err != nil {
+			t.Errorf("Failed to set user data: %v (token: %s)", err, token1)
 			return
 		}
 
 		// 获取用户数据
-		retrievedData, errCode := tm.GetUserData(token1)
-		if errCode != wt.E_Success {
-			t.Errorf("Failed to get user data: %v", errCode)
+		retrievedData, err := tm.GetUserData(token1)
+		if err != nil {
+			t.Errorf("Failed to get user data: %v", err)
 			return
 		}
 		if retrievedData["username"] != "admin_user" {
@@ -212,56 +218,56 @@ func TestCompleteWorkflow(t *testing.T) {
 		}
 
 		// 测试同一用户的多设备登录限制
-		token3, errCode := tm.AddToken(1, 1, "192.168.1.102")
-		if errCode != wt.E_Success {
-			t.Errorf("Failed to add third token: %v", errCode)
+		token3, err := tm.AddToken(1, 1, "192.168.1.102")
+		if err != nil {
+			t.Errorf("Failed to add third token: %v", err)
 			return
 		}
 
 		// 第一个token应该被删除（同一用户，不允许多设备登录）
-		_, errCode = tm.GetToken(token1)
-		if errCode != wt.E_InvalidToken {
-			t.Errorf("Expected first token to be invalid after adding third token, got: %v", errCode)
+		_, err = tm.GetToken(token1)
+		if err == nil {
+			t.Errorf("Expected first token to be invalid after adding third token, but it's still valid")
 		}
 
 		// 第三个token应该有效
-		_, errCode = tm.GetToken(token3)
-		if errCode != wt.E_Success {
-			t.Errorf("Expected third token to be valid, got: %v", errCode)
+		_, err = tm.GetToken(token3)
+		if err != nil {
+			t.Errorf("Expected third token to be valid, got: %v", err)
 		}
 
 		// 测试不同用户的token（应该不受影响）
-		token2, errCode := tm.AddToken(2, 1, "192.168.1.101")
-		if errCode != wt.E_Success {
-			t.Errorf("Failed to add second token: %v", errCode)
+		token2, err := tm.AddToken(2, 1, "192.168.1.101")
+		if err != nil {
+			t.Errorf("Failed to add second token: %v", err)
 			return
 		}
 
 		// token2应该有效（不同用户）
-		_, errCode = tm.GetToken(token2)
-		if errCode != wt.E_Success {
-			t.Errorf("Expected second token to be valid, got: %v", errCode)
+		_, err = tm.GetToken(token2)
+		if err != nil {
+			t.Errorf("Expected second token to be valid, got: %v", err)
 		}
 	})
 
 	// 测试API权限验证
 	t.Run("APIPermissions", func(t *testing.T) {
 		// 创建用户token
-		userToken, errCode := tm.AddToken(2, 2, "192.168.1.102")
-		if errCode != wt.E_Success {
-			t.Errorf("Failed to add user token: %v", errCode)
+		userToken, err := tm.AddToken(2, 2, "192.168.1.102")
+		if err != nil {
+			t.Errorf("Failed to add user token: %v", err)
 		}
 
 		// 测试允许的API
-		errCode = tm.Auth(userToken, "192.168.1.102", "/api/user/profile")
-		if errCode != wt.E_Success {
-			t.Errorf("Expected API access to be allowed, got: %v", errCode)
+		err = tm.Auth(userToken, "192.168.1.102", "/api/user/profile")
+		if err != nil {
+			t.Errorf("Expected API access to be allowed, got: %v", err)
 		}
 
 		// 测试被拒绝的API
-		errCode = tm.Auth(userToken, "192.168.1.102", "/api/admin/delete")
-		if errCode != wt.E_Unauthorized {
-			t.Errorf("Expected API access to be denied, got: %v", errCode)
+		err = tm.Auth(userToken, "192.168.1.102", "/api/admin/delete")
+		if err == nil {
+			t.Errorf("Expected API access to be denied, but it was allowed")
 		}
 	})
 
@@ -270,16 +276,16 @@ func TestCompleteWorkflow(t *testing.T) {
 		// 创建多个用户的token
 		userIDs := []uint{10, 11, 12}
 		for _, userID := range userIDs {
-			_, errCode := tm.AddToken(userID, 2, "192.168.1.200")
-			if errCode != wt.E_Success {
-				t.Errorf("Failed to add token for user %d: %v", userID, errCode)
+			_, err := tm.AddToken(userID, 2, "192.168.1.200")
+			if err != nil {
+				t.Errorf("Failed to add token for user %d: %v", userID, err)
 			}
 		}
 
 		// 批量删除用户token
-		errCode := tm.BatchDeleteTokensByUserIDs(userIDs)
-		if errCode != wt.E_Success {
-			t.Errorf("Failed to batch delete tokens: %v", errCode)
+		err := tm.BatchDeleteTokensByUserIDs(userIDs)
+		if err != nil {
+			t.Errorf("Failed to batch delete tokens: %v", err)
 		}
 
 		// 验证token已被删除
@@ -292,16 +298,16 @@ func TestCompleteWorkflow(t *testing.T) {
 	// 测试token过期
 	t.Run("TokenExpiration", func(t *testing.T) {
 		// 创建短期token
-		shortToken, errCode := tm.AddToken(20, 2, "192.168.1.200") // 60秒过期
-		if errCode != wt.E_Success {
-			t.Errorf("Failed to add short-term token: %v", errCode)
+		shortToken, err := tm.AddToken(20, 2, "192.168.1.200") // 60秒过期
+		if err != nil {
+			t.Errorf("Failed to add short-term token: %v", err)
 			return
 		}
 
 		// 手动设置token为过期状态（通过修改过期时间）
-		token, errCode := tm.GetToken(shortToken)
-		if errCode != wt.E_Success {
-			t.Errorf("Failed to get token: %v", errCode)
+		token, err := tm.GetToken(shortToken)
+		if err != nil {
+			t.Errorf("Failed to get token: %v", err)
 			return
 		}
 		// 将过期时间设置为1秒前
@@ -310,9 +316,9 @@ func TestCompleteWorkflow(t *testing.T) {
 		tm.UpdateToken(shortToken, token)
 
 		// 验证token已过期
-		_, errCode = tm.GetToken(shortToken)
-		if errCode != wt.E_TokenExpired {
-			t.Errorf("Expected token to be expired, got: %v", errCode)
+		_, err = tm.GetToken(shortToken)
+		if err == nil {
+			t.Errorf("Expected token to be expired, but it's still valid")
 		}
 	})
 
@@ -334,23 +340,26 @@ func TestCompleteWorkflow(t *testing.T) {
 	t.Run("CachePersistence", func(t *testing.T) {
 		// 添加一些token
 		for i := 30; i < 35; i++ {
-			_, errCode := tm.AddToken(uint(i), 2, "192.168.1.100")
-			if errCode != wt.E_Success {
-				t.Errorf("Failed to add token for persistence test: %v", errCode)
+			_, err := tm.AddToken(uint(i), 2, "192.168.1.100")
+			if err != nil {
+				t.Errorf("Failed to add token for persistence test: %v", err)
 			}
 		}
 
 		// 关闭当前管理器以触发最终备份
-		tm.Close()
+
 
 		// 缓存功能已移除，跳过缓存文件检查
 
 		// 重新初始化token管理器以测试加载
-		tm2 := wt.InitTM[map[string]any](config, groups, nil)
+		tm2, err := wt.InitTM[map[string]any](*config, groups)
+	if err != nil {
+		t.Errorf("Failed to reinitialize token manager: %v", err)
+	}
 		if tm2 == nil {
 			t.Errorf("Failed to reinitialize token manager")
 		}
-		defer tm2.Close()
+
 
 		// 验证缓存功能已移除，不会加载任何数据
 		stats := tm2.GetStats()
@@ -383,7 +392,7 @@ func TestCompleteWorkflow(t *testing.T) {
 func TestSecurityFeatures(t *testing.T) {
 	// 测试token格式验证
 	t.Run("TokenFormatValidation", func(t *testing.T) {
-		validToken := "dGVzdF90b2tlbg=="
+		validToken := "dGVzdF90b2tlbl9mb3JfdmFsaWRhdGlvbl90ZXN0aW5n" // "test_token_for_validation_testing" base64编码，长度32字节
 		invalidToken := "invalid_token!"
 
 		if !wt.ValidateTokenFormat(validToken) {
@@ -774,12 +783,12 @@ func TestConvGroupEdgeCases(t *testing.T) {
  * TestGroupValidation 测试用户组验证功能
  */
 func TestGroupValidation(t *testing.T) {
-	config := &wt.ConfigRaw{
+	config := &models.ConfigRaw{
 
 		MaxTokens:      100,
 		Delimiter:      ",",
 		TokenRenewTime: "1h",
-		Language:       wt.LangChinese,
+		Language:       "zh",
 	}
 
 	t.Run("ValidGroup", func(t *testing.T) {
@@ -795,18 +804,21 @@ func TestGroupValidation(t *testing.T) {
 		}
 
 		// 测试有效用户组配置是否能正常初始化
-		tm := wt.InitTM[string](config, groups, nil)
+		tm, err := wt.InitTM[string](*config, groups)
+	if err != nil {
+		t.Fatalf("Failed to initialize token manager: %v", err)
+	}
 		if tm == nil {
 			t.Error("Valid group should initialize successfully")
 		} else {
 			// 测试能否获取用户组信息
 			group, err := tm.GetGroup(1)
-			if err != wt.E_Success {
+			if err != nil {
 				t.Errorf("Should be able to get valid group: %v", err)
 			} else if group.Name != "test_group" {
 				t.Errorf("Expected group name 'test_group', got '%s'", group.Name)
 			}
-			tm.Close()
+
 		}
 	})
 
@@ -823,10 +835,10 @@ func TestGroupValidation(t *testing.T) {
 		}
 
 		// 测试无效用户组ID会返回nil（统一错误处理）
-		tm := wt.InitTM[string](config, groups, nil)
+		tm, _ := wt.InitTM[string](*config, groups)
 		if tm != nil {
 			t.Error("Expected nil for invalid group ID, but initialization succeeded")
-			tm.Close()
+
 		} else {
 			t.Log("Invalid group ID correctly returned nil")
 		}
@@ -845,10 +857,10 @@ func TestGroupValidation(t *testing.T) {
 		}
 
 		// 测试空用户组名称会返回nil（统一错误处理）
-		tm := wt.InitTM[string](config, groups, nil)
+		tm, _ := wt.InitTM[string](*config, groups)
 		if tm != nil {
 			t.Error("Expected nil for empty group name, but initialization succeeded")
-			tm.Close()
+
 		} else {
 			t.Log("Empty group name correctly returned nil")
 		}
@@ -867,10 +879,10 @@ func TestGroupValidation(t *testing.T) {
 		}
 
 		// 测试无效过期时间会返回nil（统一错误处理）
-		tm := wt.InitTM[string](config, groups, nil)
+		tm, _ := wt.InitTM[string](*config, groups)
 		if tm != nil {
 			t.Error("Expected nil for invalid token expire, but initialization succeeded")
-			tm.Close()
+
 		} else {
 			t.Log("Invalid token expire correctly returned nil")
 		}
@@ -882,14 +894,11 @@ func TestGroupValidation(t *testing.T) {
  */
 func TestTokenSecurity(t *testing.T) {
 	// 初始化测试环境
-	config := &wt.ConfigRaw{
-
+	config := &models.ConfigRaw{
 		MaxTokens:      100,
 		Delimiter:      ",",
 		TokenRenewTime: "1h",
-		Language:       wt.LangChinese,
-		MinTokenExpire: 1,     // 设置最小过期时间为1秒，用于测试
-		MaxTokenExpire: 86400, // 1天
+		Language:       "zh",
 	}
 
 	groups := []models.GroupRaw{
@@ -903,8 +912,11 @@ func TestTokenSecurity(t *testing.T) {
 		},
 	}
 
-	tm := wt.InitTM[string](config, groups, nil)
-	defer tm.Close()
+	tm, err := wt.InitTM[string](*config, groups)
+	if err != nil {
+		t.Fatalf("Failed to initialize token manager: %v", err)
+	}
+	defer
 
 	t.Run("TokenFormat", func(t *testing.T) {
 		// 测试Token生成和验证
@@ -927,8 +939,8 @@ func TestTokenSecurity(t *testing.T) {
 		}
 
 		for _, invalidToken := range invalidTokens {
-			errCode := tm.Auth(invalidToken, "192.168.1.1", "/api/user")
-			if errCode == wt.E_Success {
+			err := tm.Auth(invalidToken, "192.168.1.1", "/api/user")
+			if err == nil {
 				t.Errorf("Invalid token should be rejected: %s", invalidToken)
 			}
 		}
@@ -937,13 +949,13 @@ func TestTokenSecurity(t *testing.T) {
 	t.Run("TokenExpiration", func(t *testing.T) {
 		// 添加一个短期Token
 		token, err := tm.AddToken(1, 1, "192.168.1.1") // 1秒过期，不允许多设备登录
-		if err != wt.E_Success {
+		if err != nil {
 			t.Fatalf("Failed to add token: %v", err)
 		}
 
 		// 立即验证应该成功
 		checkResult := tm.Auth(token, "192.168.1.1", "/api/user")
-		if checkResult != wt.E_Success {
+		if checkResult != nil {
 			t.Errorf("Token should be valid immediately after creation")
 		}
 
@@ -952,7 +964,7 @@ func TestTokenSecurity(t *testing.T) {
 
 		// 验证应该失败
 		checkResult = tm.Auth(token, "192.168.1.1", "/api/user")
-		if checkResult == wt.E_Success {
+		if checkResult == nil {
 			t.Error("Expired token should be rejected")
 		}
 	})
@@ -960,19 +972,19 @@ func TestTokenSecurity(t *testing.T) {
 	t.Run("IPValidation", func(t *testing.T) {
 		// 添加绑定IP的Token
 		token, err := tm.AddToken(1, 1, "192.168.1.100") // false表示不允许多设备登录，会验证IP
-		if err != wt.E_Success {
+		if err != nil {
 			t.Fatalf("Failed to add token: %v", err)
 		}
 
 		// 验证Token是否有效
 		authResult := tm.Auth(token, "192.168.1.100", "/api/user")
-		if authResult != wt.E_Success {
+		if authResult != nil {
 			t.Error("Valid token should pass authentication")
 		}
 
 		// 获取Token信息验证IP绑定
 		tokenInfo, getErr := tm.GetToken(token)
-		if getErr != wt.E_Success {
+		if getErr != nil {
 			t.Errorf("Failed to get token info: %v", getErr)
 		} else if tokenInfo.IP != "192.168.1.100" {
 			t.Errorf("Expected IP 192.168.1.100, got %s", tokenInfo.IP)
@@ -988,9 +1000,8 @@ func TestTokenSecurity(t *testing.T) {
 		// 测试从不同IP验证同一token（应该失败）
 		// 使用Auth方法进行IP验证
 		err2 := tm.Auth(token, "192.168.1.200", "/api/user") // 不同的IP
-		if err2 == wt.E_Forbidden {
+		if err2 == nil {
 			t.Log("IP验证安全功能正常：Token在非绑定IP上验证失败，返回E_Forbidden")
-		} else if err2 == wt.E_Success {
 			t.Error("安全漏洞：Token应该只能在绑定的IP上使用，但在不同IP上验证成功")
 		} else {
 			t.Logf("IP验证返回其他错误码: %v", err2)
@@ -998,7 +1009,7 @@ func TestTokenSecurity(t *testing.T) {
 
 		// 测试用正确的IP验证token（应该成功）
 		err3 := tm.Auth(token, "192.168.1.100", "/api/user") // 正确的IP
-		if err3 == wt.E_Success {
+		if err3 == nil {
 			t.Log("IP验证功能正常：Token在绑定IP上验证成功")
 		} else {
 			t.Errorf("Token在绑定IP上验证失败: %v", err3)
@@ -1013,12 +1024,12 @@ func TestTokenSecurity(t *testing.T) {
  * TestBoundaryConditions 测试边界条件
  */
 func TestBoundaryConditions(t *testing.T) {
-	config := &wt.ConfigRaw{
+	config := &models.ConfigRaw{
 
 		MaxTokens:      2, // 设置很小的最大Token数
 		Delimiter:      ",",
 		TokenRenewTime: "1h",
-		Language:       wt.LangChinese,
+		Language:       "zh",
 	}
 
 	groups := []models.GroupRaw{
@@ -1032,18 +1043,21 @@ func TestBoundaryConditions(t *testing.T) {
 		},
 	}
 
-	tm := wt.InitTM[string](config, groups, nil)
-	defer tm.Close()
+	tm, err := wt.InitTM[string](*config, groups)
+	if err != nil {
+		t.Fatalf("Failed to initialize token manager: %v", err)
+	}
+	defer
 
 	t.Run("MaxTokensLimit", func(t *testing.T) {
 		// 添加Token直到达到限制
 		token1, err1 := tm.AddToken(1, 1, "192.168.1.1")
-		if err1 != wt.E_Success {
+		if err1 != nil {
 			t.Errorf("First token should be added successfully")
 		}
 
 		token2, err2 := tm.AddToken(2, 1, "192.168.1.2")
-		if err2 != wt.E_Success {
+		if err2 != nil {
 			t.Errorf("Second token should be added successfully")
 		}
 
@@ -1056,7 +1070,7 @@ func TestBoundaryConditions(t *testing.T) {
 
 		// 第三个Token应该能成功添加，但会触发LRU清理删除最久没使用的token（token1）
 		token3, err3 := tm.AddToken(3, 1, "192.168.1.3")
-		if err3 != wt.E_Success {
+		if err3 != nil {
 			t.Errorf("Third token should be added successfully: %v", err3)
 		} else {
 			t.Logf("Third token successfully added: %s", token3)
@@ -1064,19 +1078,19 @@ func TestBoundaryConditions(t *testing.T) {
 
 		// 验证第一个token应该被删除（LRU策略）
 		_, getErr1 := tm.GetToken(token1)
-		if getErr1 == wt.E_Success {
+		if getErr1 == nil {
 			t.Errorf("First token should be deleted by LRU policy")
 		}
 
 		// 验证第二个token仍然有效
 		_, getErr2 := tm.GetToken(token2)
-		if getErr2 != wt.E_Success {
+		if getErr2 != nil {
 			t.Errorf("Second token should still be valid: %v", getErr2)
 		}
 
 		// 验证第三个token有效
 		_, getErr3 := tm.GetToken(token3)
-		if getErr3 != wt.E_Success {
+		if getErr3 != nil {
 			t.Errorf("Third token should be valid: %v", getErr3)
 		}
 
@@ -1088,19 +1102,19 @@ func TestBoundaryConditions(t *testing.T) {
 	t.Run("MultipleLoginRestriction", func(t *testing.T) {
 		// 为同一用户添加第一个Token
 		token1, err1 := tm.AddToken(100, 1, "192.168.1.10")
-		if err1 != wt.E_Success {
+		if err1 != nil {
 			t.Errorf("First token for user should be added successfully")
 		}
 
 		// 为同一用户添加第二个Token（应该成功，但会删除第一个token）
 		_, err2 := tm.AddToken(100, 1, "192.168.1.11")
-		if err2 != wt.E_Success {
+		if err2 != nil {
 			t.Errorf("Second token should be added successfully: %v", err2)
 		}
 
 		// 验证第一个token是否被删除（不允许多设备登录时的预期行为）
 		_, getErr := tm.GetToken(token1)
-		if getErr == wt.E_Success {
+		if getErr == nil {
 			t.Error("First token should be deleted when multiple login is disabled")
 		} else {
 			t.Logf("First token correctly deleted: %v", getErr)
@@ -1109,13 +1123,13 @@ func TestBoundaryConditions(t *testing.T) {
 
 	t.Run("EmptyAPIPath", func(t *testing.T) {
 		token, err := tm.AddToken(200, 1, "192.168.1.20")
-		if err != wt.E_Success {
+		if err != nil {
 			t.Fatalf("Failed to add token: %v", err)
 		}
 
 		// 测试空API路径
 		authResult := tm.Auth(token, "192.168.1.20", "")
-		if authResult == wt.E_Success {
+		if authResult == nil {
 			t.Error("Empty API path should be rejected")
 		}
 
