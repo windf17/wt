@@ -10,6 +10,7 @@
 -   **权限控制**: 基于用户组的 API 访问控制
 -   **安全防护**: Token 验证、IP 绑定、权限检查
 -   **RESTful API**: 标准的 REST API 设计
+-   **压力测试**: 完整的并发测试工具
 
 ## 🏗️ 系统架构
 
@@ -28,17 +29,15 @@
 
 ## 👥 用户组配置
 
-### 管理员组 (ID=1)
-
--   **权限**: 不允许重复登录
--   **API 访问**: 拥有管理员专属 API 权限
--   **安全级别**: 高
-
 ### 普通用户组 (ID=2)
 
 -   **权限**: 允许重复登录
--   **API 访问**: 拥有普通用户专属 API 权限
+-   **Token过期时间**: 4小时
+-   **允许访问的API**: `/api/user`, `/api/logout`
+-   **禁止访问的API**: `/api/admin`
 -   **安全级别**: 标准
+
+**注意**: 本示例中所有用户（包括管理员）都使用同一个用户组配置，通过用户角色字段区分权限。
 
 ## 👤 测试用户账号
 
@@ -49,7 +48,7 @@
 
 ### 普通用户
 
--   `user1` / `user123` 到 `user100` / `user123`
+-   `user1` / `user123` 到 `user100` / `user123` (100个用户)
 
 ## 🔗 API 端点
 
@@ -57,8 +56,8 @@
 | ---- | ---------------------- | ------------ | ------------ |
 | POST | `/api/login`           | 用户登录     | 无           |
 | POST | `/api/logout`          | 用户登出     | 需要 Token   |
-| GET  | `/api/admin/dashboard` | 管理员仪表板 | 管理员权限   |
-| GET  | `/api/user/profile`    | 用户个人资料 | 普通用户权限 |
+| GET  | `/api/admin/dashboard` | 管理员仪表板 | 需要 Token（但会被拒绝访问） |
+| GET  | `/api/user/profile`    | 用户个人资料 | 需要 Token   |
 
 ## 🚀 快速开始
 
@@ -168,12 +167,12 @@ go run pressure_testing.go
 
 经过 1000 并发用户测试验证：
 
--   ✅ **登录成功率**: 100% (1000/1000)
--   ✅ **登出成功率**: 100% (1000/1000)
--   ✅ **API 请求成功率**: 100% (授权请求)
--   ✅ **权限控制**: 100%正确拒绝未授权请求
--   ⚡ **平均响应时间**: <10ms
--   🚀 **吞吐量**: 509.68 请求/秒
+-   ✅ **登录成功率**: 接近100%
+-   ✅ **登出成功率**: 接近100%
+-   ✅ **允许API请求成功率**: 接近100%
+-   ✅ **权限控制**: 正确拒绝未授权请求
+-   ⚡ **平均响应时间**: 毫秒级
+-   🚀 **高并发支持**: 1000并发用户
 
 ## 🧪 测试用例
 
@@ -205,6 +204,12 @@ const (
     testUsers    = 1000  // 并发用户数
     testDuration = 120   // 测试时长(秒)
 )
+
+// 测试的API端点
+var apiEndpoints = []string{
+    "/api/user/profile",
+    "/api/admin/dashboard",
+}
 ```
 
 ## 📁 文件结构
@@ -213,7 +218,8 @@ const (
 examples/web_server/
 ├── main.go              # 主服务器文件
 ├── go.mod              # Go模块依赖
-├── README.md           # 本文档
+├── go.sum              # Go模块校验文件
+├── readme.md           # 本文档
 └── test/
     └── pressure_testing.go  # 压力测试工具
 ```
@@ -223,34 +229,30 @@ examples/web_server/
 ### Token 管理器配置
 
 ```go
-config := &wt.ConfigRaw{
-    MaxTokens:      10000,           // 最大Token数量
-    Delimiter:      ",",             // API权限分隔符
-    TokenRenewTime: "24h",           // Token续期时间
-    Language:       wt.Chinese,  // 错误信息语言
+config := models.ConfigRaw{
+    MaxTokens:      10000,  // 最大Token数量
+    Delimiter:      ",",    // API权限分隔符
+    TokenRenewTime: "24h",  // Token续期时间
+    Language:       "zh",   // 错误信息语言
 }
 ```
 
 ### 用户组配置
 
 ```go
-groups := []wt.GroupRaw{
-    {
-        ID:                 1,
-        Name:               "管理员",
-        ExpireSeconds:      3600,        // 1小时过期
-        AllowMultipleLogin: 0,           // 不允许多设备登录
-        AllowedAPIs:        "/api/admin,/api/user", // 允许的API
-    },
+groups := []models.GroupRaw{
     {
         ID:                 2,
         Name:               "普通用户",
-        ExpireSeconds:      7200,        // 2小时过期
-        AllowMultipleLogin: 1,           // 允许多设备登录
-        AllowedAPIs:        "/api/user",    // 允许的API
+        TokenExpire:        "4h",                       // 4小时过期
+        AllowMultipleLogin: 1,                          // 允许多设备登录
+        AllowedAPIs:        "/api/user,/api/logout",    // 允许的API
+        DeniedAPIs:         "/api/admin",               // 禁止的API
     },
 }
 ```
+
+**注意**: 本示例为了简化演示，所有用户都使用同一个用户组。在实际应用中，建议为不同角色的用户配置不同的用户组。
 
 ## 🚨 错误处理
 
@@ -291,10 +293,11 @@ curl -X GET http://localhost:8081/api/user/profile \
 
 服务器会输出详细的请求处理日志，包括：
 
--   客户端 IP
--   访问路径
--   Token 验证结果
+-   客户端 IP 地址处理（支持IPv4和IPv6）
+-   访问路径和HTTP方法
+-   Token 验证结果和过程
 -   权限检查结果
+-   用户数据设置和获取过程
 
 ## 🎯 最佳实践
 
@@ -328,6 +331,8 @@ curl -X GET http://localhost:8081/api/user/profile \
 3. **监控告警**: 集成 Prometheus 监控
 4. **负载均衡**: 多实例部署
 5. **API 网关**: 集成到 API 网关
+6. **多用户组**: 配置不同权限的用户组
+7. **动态权限**: 运行时动态调整API权限
 
 ### 集成示例
 
@@ -345,6 +350,18 @@ func initRedis() {
 // 集成监控
 func initMetrics() {
     // Prometheus指标注册
+}
+
+// 添加多个用户组
+func addMultipleGroups() {
+    adminGroup := models.GroupRaw{
+        ID: 1,
+        Name: "管理员",
+        TokenExpire: "2h",
+        AllowMultipleLogin: 0,
+        AllowedAPIs: "/api/admin,/api/user,/api/logout",
+    }
+    tokenManager.AddGroup(adminGroup)
 }
 ```
 
