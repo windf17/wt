@@ -67,18 +67,13 @@ var tokenManager *wt.Manager[UserInfo]
  */
 func initTokenManager() {
 	// ========== 系统配置参数说明 ==========
-	// wt.ConfigRaw 结构体包含了所有可配置的参数
-	config := &wt.ConfigRaw{
+	// models.ConfigRaw 结构体包含了所有可配置的参数
+	config := models.ConfigRaw{
 		// 基础配置
-		MaxTokens:      10000,          // 最大Token数量限制
-		Delimiter:      ",",            // API路径分隔符
-		TokenRenewTime: "24h",          // Token自动续期时间
-		Language:       wt.LangChinese, // 错误消息语言
-
-		// ========== Token验证参数配置 ==========
-		// 这些参数可以在运行时动态配置，提供更灵活的验证策略
-		MinTokenExpire: 60,    // Token最小过期时间（秒），默认60秒
-		MaxTokenExpire: 86400, // Token最大过期时间（秒），默认24小时
+		MaxTokens:      10000,  // 最大Token数量限制
+		Delimiter:      ",",    // API路径分隔符
+		TokenRenewTime: "24h",  // Token自动续期时间
+		Language:       "zh",   // 错误消息语言
 	}
 
 	// ========== 用户组配置 ==========
@@ -96,8 +91,11 @@ func initTokenManager() {
 	}
 
 	// ========== Token管理器初始化 ==========
-	// InitTM函数接受三个参数：配置、用户组、自定义验证函数
-	manager := wt.InitTM[UserInfo](config, groups, nil)
+	// InitTM函数接受两个参数：配置、用户组
+	manager, err := wt.InitTM[UserInfo](config, groups)
+	if err != nil {
+		log.Fatalf("Token管理器初始化失败: %v", err)
+	}
 	tokenManager = manager.(*wt.Manager[UserInfo])
 
 	// ========== 其他可选配置示例 ==========
@@ -190,13 +188,13 @@ func authMiddleware(next http.Handler) http.Handler {
 		// 1. token: 要验证的Token字符串
 		// 2. clientIP: 客户端IP地址
 		// 3. apiPath: 要访问的API路径（如：/api/user/profile）
-		authResult := tokenManager.Auth(token, clientIP, r.URL.Path)
-		log.Printf("Token验证结果: %v", authResult)
-		if authResult != wt.E_Success {
-			if authResult == wt.E_Unauthorized {
-				responseJSON(w, http.StatusForbidden, fmt.Sprintf("权限不足: %v", authResult), nil)
+		authErr := tokenManager.Auth(token, clientIP, r.URL.Path)
+		log.Printf("Token验证结果: %v", authErr)
+		if authErr != nil {
+			if strings.Contains(authErr.Error(), "未授权") || strings.Contains(authErr.Error(), "unauthorized") {
+				responseJSON(w, http.StatusForbidden, fmt.Sprintf("权限不足: %v", authErr), nil)
 			} else {
-				responseJSON(w, http.StatusUnauthorized, fmt.Sprintf("认证失败: %v", authResult), nil)
+				responseJSON(w, http.StatusUnauthorized, fmt.Sprintf("认证失败: %v", authErr), nil)
 			}
 			return
 		}
@@ -205,7 +203,7 @@ func authMiddleware(next http.Handler) http.Handler {
 		// GetUserData函数获取Token绑定的用户信息
 		// 返回之前通过SetUserData设置的自定义用户数据
 		userInfo, err := tokenManager.GetUserData(token)
-		if err == wt.E_Success {
+		if err == nil {
 			// 将用户信息添加到请求头，供后续处理器使用
 			r.Header.Set("X-User-ID", fmt.Sprintf("%d", userInfo.UserID))
 			r.Header.Set("X-Username", userInfo.Username)
@@ -341,7 +339,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	// 2. groupID: 用户组ID（决定权限和Token过期时间）
 	// 3. clientIP: 客户端IP地址（用于安全验证）
 	token, err := tokenManager.AddToken(userInfo.UserID, groupID, clientIP)
-	if err != wt.E_Success {
+	if err != nil {
 		responseJSON(w, http.StatusInternalServerError, fmt.Sprintf("Token创建失败: %v", err), nil)
 		return
 	}
@@ -358,7 +356,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		// 参数说明：
 		// 1. token: 要绑定数据的Token字符串
 		// 2. userInfo: 要绑定的用户信息（泛型类型，本例中为UserInfo结构体）
-		if err := tokenManager.SetUserData(token, userInfo); err != wt.E_Success {
+		if err := tokenManager.SetUserData(token, userInfo); err != nil {
 			log.Printf("设置用户数据失败: %v", err)
 		} else {
 			log.Printf("用户数据设置成功 - 用户: %s, 邮箱: %s", userInfo.Username, userInfo.Email)
@@ -418,7 +416,7 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	// 1. token: 要删除的Token字符串
 	// 删除后该Token将立即失效，无法再用于API访问
 	// 同时会清理相关的用户数据和缓存信息
-	if err := tokenManager.DelToken(token); err != wt.E_Success {
+	if err := tokenManager.DelToken(token); err != nil {
 		responseJSON(w, http.StatusInternalServerError, fmt.Sprintf("登出失败: %v", err), nil)
 		return
 	}
