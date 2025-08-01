@@ -16,7 +16,7 @@ WT 是一个**企业级**高性能、线程安全的 Token 管理系统，专为
 ## 📦 快速安装
 
 ```bash
-go get wt
+go get github.com/windf17/wt
 ```
 
 ### 系统要求
@@ -34,7 +34,7 @@ package main
 
 import (
     "fmt"
-    "wt"
+    "github.com/windf17/wt"
 )
 
 func main() {
@@ -87,8 +87,8 @@ package main
 
 import (
     "fmt"
-    "wt"
-    "wt/models"
+    "github.com/windf17/wt"
+    "github.com/windf17/wt/models"
 )
 
 func main() {
@@ -234,7 +234,7 @@ package main
 
 import (
     "fmt"
-    "wt"
+    "github.com/windf17/wt"
 )
 
 func main() {
@@ -557,7 +557,7 @@ WT is an **enterprise-grade** high-performance, thread-safe Token management sys
 ## 📦 Quick Installation
 
 ```bash
-go get wt
+go get github.com/windf17/wt
 ```
 
 ### System Requirements
@@ -575,7 +575,7 @@ package main
 
 import (
     "fmt"
-    "wt"
+    "github.com/windf17/wt"
 )
 
 func main() {
@@ -630,8 +630,8 @@ package main
 
 import (
     "fmt"
-    "wt"
-    "wt/models"
+    "github.com/windf17/wt"
+    "github.com/windf17/wt/models"
 )
 
 func main() {
